@@ -1,0 +1,6 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: bg_back.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. Do NOT edit or post-process the image with code. After saving, reply only with the file name.
+
+The FARTHEST BACKGROUND LAYER for a cute 2D side-scrolling action game set inside a giant cozy kitchen pantry at night, seen at MOUSE SCALE, side view. Same completely FLAT style as the attached bg_far.png (one solid color per area, no gradients, no texture, no soft shading, simple flat halftone dots allowed). It will be blurred and pixelated later by code, so keep shapes big and simple.
+Show only what is very far away behind the shelves: the tall back wall of the pantry with vertical wood boards, very high distant shelves as simple silhouettes with a few tiny far jars and bottles, a tall far doorway with a sliver of warm light, hanging dried herbs far away. NO big foreground objects, no shelf in the lower half, no characters, no text.
+- 2048x1024 landscape. Low contrast, dark muted purple-navy palette (darker and duller than bg_far.png) with a few faint warm accents.
+- The left and right edges must tile seamlessly.

@@ -1,0 +1,12 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: fx_bold.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. After saving, reply only with the file name. Do NOT edit or post-process the image with code.
+
+A sheet of BOLD SWORD SLASH EFFECTS for a fast stylish 2D action game, like the slashes in modern indie action games: BIG, THICK, almost SOLID single-color shapes that read instantly. Cute pop-art flavor.
+STYLE: clean FLAT vector shapes, crisp hard edges, NO gradients, NO glow, NO blur, NO thin lines, NOT pixel art (it will be pixelated later by code). Each shape is mostly ONE solid color: pure WHITE body, with a bold HOT RED (#FF2E4D) band along its lower/inner edge (about 1/4 of the thickness). Nothing else. Shapes are FAT and SOLID, never wispy.
+- 1536x1536 square, solid flat MAGENTA background (#FF00FF). No text, no labels, no grid. Every item separated by WIDE magenta gaps, never touching each other or the image edge.
+Row 1 and Row 2: the SAME long horizontal SLASH RIBBON drawn 4 times stacked, same size each (about 1400 px wide, 170 px tall), aligned at the right: a THICK solid swoosh band, fattest (about 130 px) near the RIGHT end where it ends in a sharp pointed head, tapering smoothly to a sharp point at the LEFT end; white with a solid hot-red lower band.
+  strip A = complete solid band.
+  strip B = the left third breaks into 3-4 fat solid chunks with gaps.
+  strip C = the left two thirds broken into fat solid chunks drifting apart, right part still solid.
+  strip D = only the fat pointed head on the right remains, plus a few chunks.
+Row 3: a FAT HORIZONTAL CRESCENT slash (lying flat like a wide smile, about 150 degrees of arc, very wide and flat, thick solid white with a hot-red inner band, sharp tips), drawn 3 times: forming (half thickness), full (very thick), breaking into fat chunks.
+Row 4: a long THICK horizontal straight slash streak (solid hot red with a white core), and next to it a fat solid white 4-point impact star.

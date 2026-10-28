@@ -1,0 +1,14 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: frames_sheet.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. After saving, reply only with the file name. Do NOT edit or post-process the image with code.
+
+Attached: ref_side.png = our tiny chibi mouse knight (side view facing right) and sword_sheet.png = his NEW weapon, a slim one-handed knight's arming sword (use THIS sword, not the big one in ref_side.png). Draw an ANIMATION KEY-FRAME SHEET of exactly this character in extreme, fast, stylish action poses for a 2D action game. Same design, same colors, same completely FLAT style (one solid color per area, NO shading, NO highlight, NO gradient, NO outlines), all frames at the SAME SCALE, all facing RIGHT, side view.
+- 1536x1536 square, solid flat MAGENTA background (#FF00FF), no text, no labels, no grid lines, no ground, no shadows, no speed lines, no effects. Each frame alone in its own cell of a 3 columns x 3 rows grid, with WIDE magenta gaps; nothing touches another cell or the image edge.
+Frames (left to right, top to bottom):
+ 1) CROUCH COIL: extremely low crouch, knees deeply bent, body leaning forward, sword held back and low behind him, ready to explode forward.
+ 2) TUCK SPIN A: curled into a tight round ball doing a forward somersault, knees to chest, ears folded, cape wrapped around, sword held tight along the body with the blade sticking out.
+ 3) TUCK SPIN B: the same tight spinning ball, upside down (rotated half a turn), cape and tail flung outward.
+ 4) DASH THROUGH: body almost horizontal, flying forward very low just above the ground, sword arm stretched forward with the blade pointing straight ahead, cape and tail streaming far behind.
+ 5) AFTER-CUT SLIDE: having slashed through, he skids low on one knee, sword arm swept far back behind him, blade pointing back, cape flying forward from the momentum.
+ 6) RISING SLASH: springing up from low with the sword swung high overhead behind him, body stretched upward and forward.
+ 7) DOWN CLEAVE: in mid-air, both hands bringing the sword down hard in front of him, body curled forward.
+ 8) LOW LUNGE THRUST: deep forward lunge, front knee bent, back leg straight, sword arm fully extended forward in a thrust.
+ 9) READY STANCE: cool low battle stance, sword held forward and low in one hand, free hand back, cape fluttering.

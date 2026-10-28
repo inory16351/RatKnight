@@ -1,0 +1,13 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: full_side_v3.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. After saving, reply only with the file name. Do NOT edit or post-process the image with code: save the generated image as-is.
+
+Attached: (1) full_side.png = our CURRENT character drawing (keep this exact COSTUME, colors, face and flat style), (2) style refs from our game. Only the PROPORTIONS change.
+REDRAW WITH NEW PROPORTIONS, cute SD / chibi action-hero proportions in the spirit of Hollow Knight: Silksong's Hornet (about 3 heads tall, NOT realistic):
+- BIG head (about 40% of total height, ears included) with a neat small face: simple dark oval eye with one tiny white catchlight, small pink nose, short whiskers, compact snout. Big round pink ears stay.
+- COMPACT small torso, short chunky body. Arms and legs are SOLID and a little thick (not skinny sticks) but SHORT; legs only about 28% of total height. Small neat hands, sturdy small boots. Cute, bouncy, agile, readable at small size.
+
+Image spec:
+- 1024x1536 portrait, solid flat MAGENTA background (#FF00FF): no floor, no ground shadow, no glow, no text, no frame.
+- ONE full-body character, centered, about 85% of the image height, feet, ears, tail and the whole sword fully inside the image.
+- RENDERING: COMPLETELY FLAT: every area is ONE single solid color fill. NO shading, NO shadow tone, NO highlight, NO gradients, NO texture, NO outlines. Thin dark lines only for eye, mouth, whiskers.
+- COSTUME (same as the attached drawing): grey-brown fur, light brown leather tunic with small steel chest plate, ONE steel shoulder pauldron, NAVY BLUE short scarf-cape with a GOLD clasp at the neck, navy sash belt with gold buckle and hanging sash end, brown boots with steel toe caps, navy wristbands, long thin pink tail. Weapon: the same plain BROKEN steel LONGSWORD (snapped at 2/3 with a jagged tip, brass crossguard, wrapped grip), blade length about 55% of the character height.
+- POSE (it will be cut into rig parts for 2D cutout animation): calm neutral standing rig pose. Pure SIDE PROFILE facing RIGHT. Legs straight, slightly apart, both feet flat. Only the NEAR arm visible, hanging slightly forward and away from the body with a clear magenta gap between arm and torso; its hand holds the sword by the grip, blade pointing straight UP in front of the body (not overlapping the head). The FAR arm hidden behind the body. The cape hangs behind the back and must NOT cover the arm or legs. The tail curves out behind to the left, separated from the legs.

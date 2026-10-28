@@ -1,0 +1,15 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: sheet.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. Do NOT edit or post-process the image with code. After saving, reply only with the file name.
+
+Attached: ref_style.png = the hero of our 2D action game: a tiny chibi mouse knight (navy cape, gold trims) who dreams of knightly romance in a modern human city at night. The game uses a bold POP-ART comic look (neon signs, Ben-Day halftone dots, hot magenta, electric cyan, lemon yellow, deep navy-purple).
+
+Draw a GAME UI ELEMENTS sheet in that POP-ART city style: completely FLAT shapes (one solid color per area, NO gradients, NO glow blur, NO soft shading), thick dark navy comic outlines are OK for UI, flat halftone dots as decoration, crisp edges, big simple shapes (it will be pixelated later by code).
+- 1536x1536, solid flat MAGENTA background (#FF00FF) — so do NOT use magenta (#FF00FF) inside the elements; use hot pink (#FF3D8B) instead. No text, no letters, no numbers, no labels, no grid lines. 2 columns x 4 rows, each element alone in its own cell with WIDE magenta gaps; nothing touches another cell or the image edge.
+Elements (left to right, top to bottom):
+ 1) HEART FULL: a chunky hot-pink comic heart with a thick navy outline, a white shine mark and a few halftone dots, a tiny gold knight-shield shape behind it.
+ 2) HEART EMPTY: exactly the same heart and size, but the inside is dark navy with faint halftone dots (lost health).
+ 3) LEVEL BADGE: a round comic starburst badge (yellow burst with navy outline) with a small crossed-sword-and-crown on top, its center a flat EMPTY cyan circle (a number will be written there by code).
+ 4) BANNER: a wide comic speech-caption box: lemon-yellow rectangle with a thick navy outline and a slanted hot-pink offset shadow, middle EMPTY for text. Wide.
+ 5) XP BAR FRAME: a long, wide and thin horizontal empty bar frame with thick navy outline, inside EMPTY dark navy, a small cheese-wedge icon cap on the left end. Very wide and thin.
+ 6) XP BAR FILL: a long wide thin flat lemon-yellow strip with halftone dots, same length as the inside of the bar frame. Very wide and thin.
+ 7) BOSS BAR FRAME: an even longer, wide and thin bar frame: thick navy outline, inside EMPTY, a tiny bottle-cap crown icon on the left end, little neon bolts on both ends. Very wide and thin.
+ 8) BOSS BAR FILL: a long wide thin flat hot-pink strip with halftone dots, same length as the inside of the boss bar frame. Very wide and thin.

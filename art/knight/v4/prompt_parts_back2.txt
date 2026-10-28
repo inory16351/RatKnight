@@ -1,0 +1,8 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: parts_back.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. After saving, reply only with the file name.
+
+The attached view_back.png shows our cute cartoon mouse knight mascot (a children's-game style character in a navy cape) seen from the rear. Create a game-asset sprite sheet of his separate body pieces, rear view, for 2D puppet animation. Same flat cartoon colors and style as the attachment, no shading, no outlines.
+- 1536x1536, plain flat magenta background (#FF00FF), no text.
+- 10 pieces in a 4x3 grid, each alone in its own cell with wide gaps:
+ 1) head from behind with both big round ears, 2) upper body from behind (brown leather tunic, no cape, no arms), 3) belt and short brown skirt from behind, 4) the navy cape alone, hanging down,
+ 5) upper arm with steel shoulder guard, hanging down, 6) lower arm with navy wristband and a closed hand, hanging down, 7) upper leg hanging down, 8) lower leg in a brown boot, seen from behind,
+ 9) the long pink tail, 10) lower arm with an open hand.

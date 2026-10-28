@@ -1,0 +1,7 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: bg_far.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. After saving, reply only with the file name. Do NOT edit or post-process the image with code.
+
+A BACKGROUND for a cute 2D side-scrolling action game, drawn as a clean FLAT vector-style illustration with a POP-ART look (bold flat colors, simple Ben-Day halftone dots as flat circles), cheerful and CUTE, in the SAME completely flat style as the attached hero ref_char.png (one solid color per area, no gradients, no texture, no soft shading). It will be pixelated later by code, so keep shapes big and readable.
+SETTING: the world seen at MOUSE SCALE: the inside of a giant cozy kitchen pantry at night, side view. Huge everyday objects tower over the viewer: giant tin cans with pop labels, a stack of enormous cookies, a polka-dot jam jar, a giant teacup, wooden shelf planks far above, a warm round window with a big moon. Soft purple-navy night palette with pops of pink, mint, yellow and orange accents.
+- 1536x1024 landscape. NOT pixel art: smooth flat vector shapes, crisp edges, limited palette (about 20 colors), NO gradients, NO glow, NO blur.
+- This is the FAR layer behind gameplay: keep it slightly lower contrast and darker than the hero so he pops, nothing important in the bottom 20% (the floor will be drawn over it), no characters, no text, no UI.
+- The left and right edges must tile seamlessly (the image repeats horizontally).

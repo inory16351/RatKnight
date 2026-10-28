@@ -1,0 +1,11 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: sheet.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. After saving, reply only with the file name. Do NOT edit or post-process the image with code.
+
+Attached: ref_style.png = the HERO of our 2D action game (a tiny chibi mouse knight). Use it ONLY as the STYLE reference: the same completely FLAT style (one solid color per area, NO shading, NO highlight, NO gradient, NO outlines) and the same cute rounded shapes. Do NOT draw the mouse.
+
+Draw a PROPS sheet for a game set in a giant kitchen seen from a mouse's eye level, side view.
+- 1536x1024, solid flat MAGENTA background (#FF00FF), no text, no labels, no grid lines, no ground, no shadows. 2 columns x 2 rows, each item alone in its own cell with WIDE magenta gaps; nothing touches another cell or the image edge.
+Items (left to right, top to bottom):
+ 1) SHELTER CANDLE, UNLIT: a short melted cream-colored candle stub standing in a small brass candle holder (a rest/save point for the mouse knight), wick black, no flame. Drawn big, filling its cell.
+ 2) SHELTER CANDLE, LIT: exactly the same candle and holder, now with a warm flat flame (yellow core, orange outer) on the wick. Same size and position as item 1.
+ 3) CHEESE CRUMB: a small chunky crumb of yellow cheese with a couple of round holes (experience pickup). Drawn big, filling its cell.
+ 4) CHEESE WEDGE: a bigger triangular wedge of yellow cheese with round holes (large experience pickup). Drawn big, filling its cell.

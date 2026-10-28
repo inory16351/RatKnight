@@ -1,0 +1,8 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: parts.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. Do NOT edit or post-process the image with code. After saving, reply only with the file name.
+
+Attached: full.png = our boss, the Toad King of the Sewer (side view facing LEFT). Draw a CUTOUT-ANIMATION PARTS SHEET of EXACTLY this toad — same design, same colors, same completely FLAT style (one solid color per area, NO gradients, NO shading, NO outlines), same scale as full.png. The parts will be rigged and animated by code, so each part must be COMPLETE (draw the hidden overlapping areas too, rounded ends at joints) and separated.
+- 2048x1536, solid flat MAGENTA background (#FF00FF), no text, no labels, no grid lines. Each part alone with WIDE magenta gaps; no part touches another part or the image edge. All parts in side view facing LEFT, at the same scale as full.png.
+Parts (arrange in rows, left to right):
+ Row 1: (1) BODY + HEAD with the UPPER jaw only (mouth line open at the bottom, no lower jaw, no legs, no arms; keep the eyes, crown and wrapper cape on it). (2) LOWER JAW + THROAT pouch as one piece (cream-yellow, with the lower lip).
+ Row 2: (3) FRONT ARM upper part. (4) FRONT HAND with webbed fingers. (5) BACK THIGH (big folded leg). (6) BACK FOOT, webbed.
+ Row 3: (7) EYELIDS closed (a pair of olive half-ovals to cover the eyes when blinking). (8) TONGUE TIP: a pink rounded sticky tongue tip. (9) TONGUE SEGMENT: a straight horizontal pink tongue strip (long, uniform width, flat ends). (10) The THROAT pouch fully INFLATED as a big round cream-yellow balloon (same width as part 2 at the top).

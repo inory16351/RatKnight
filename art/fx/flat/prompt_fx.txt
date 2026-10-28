@@ -1,0 +1,12 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: fx_sheet.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. After saving, reply only with the file name. Do NOT edit or post-process the image with code.
+
+A sheet of STYLISH SWORD SLASH EFFECTS for a fast 2D action game, in the spirit of sleek modern action games (razor-thin, fast, elegant, high contrast) with a cute POP-ART accent. Attached ref_char.png = our tiny mouse knight with a slim arming sword (mood and scale only).
+STYLE: clean FLAT vector shapes, crisp hard edges, NO gradients, NO glow, NO blur, NOT pixel art (it will be pixelated later by code). Palette ONLY: pure white, hot coral red (#FF3B5C), a little electric cyan (#3DE0FF), and deep navy (#1B1F4A) for thin accents. Shapes are THIN and SHARP: needle tips at both ends, long elegant curves, never fat or blobby.
+- 1536x1536 square, solid flat MAGENTA background (#FF00FF). No text, no labels, no grid. Every item separated by WIDE magenta gaps, never touching each other or the image edge.
+Row 1 and Row 2: the SAME long horizontal SLASH RIBBON drawn 4 times stacked, same size each (about 1400 px wide, 120 px tall), aligned: a razor-thin white blade-light streak that is thickest near the RIGHT end (about 50 px) and tapers to needle points at both ends, with a thin hot-coral edge line along its lower side and a hair-thin cyan line offset just below it.
+  strip A = clean and complete.
+  strip B = the left third splits into 2-3 hair-thin parallel threads.
+  strip C = the left two thirds shattered into thin sharp white slivers drifting apart, right part still solid.
+  strip D = only a thin sharp sliver at the right end remains, the rest is a few tiny sharp shards.
+Row 3: (a) a THIN CRESCENT slash arc (about 140 degrees, needle tips, white core, coral rim) drawn 3 times: appearing (hairline), full, breaking into slivers. (b) a long straight horizontal CUT LINE flash: a hair-thin white line with a small coral diamond glint at the center.
+Row 4: (a) a sharp 4-point white IMPACT STAR with long thin coral rays (one frame). (b) 6 tiny sharp white/coral shards. (c) a short set of 3 thin horizontal white motion lines.

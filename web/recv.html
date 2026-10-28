@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>그림 받기</title>
+<body style="font-family:sans-serif;background:#1d2140;color:#eee;padding:20px">
+<div id="log">ChatGPT 탭에서 그림을 기다리는 중…</div>
+<script>
+// ChatGPT 탭(opener)이 postMessage 로 { path, blob } 를 보내면 로컬 서버 /__art 로 저장
+// (ChatGPT 페이지는 CSP 때문에 localhost 로 직접 못 보내서 이 창이 중계)
+const log = t => (document.getElementById('log').innerHTML += '<br>' + t);
+addEventListener('message', async e => {
+  const { path, blob } = e.data || {};
+  if (!path || !(blob instanceof Blob)) return;
+  if (!/^art\/[\w\/.-]+\.png$/.test(path)) return log('거부: ' + path);
+  const r = await fetch('/__art?path=' + encodeURIComponent(path), { method: 'POST', body: blob });
+  log((await r.text()) + ' (' + blob.size + ' bytes)');
+  e.source?.postMessage({ saved: path }, '*');
+});
+window.opener?.postMessage({ ready: true }, '*');
+</script>
+</body>

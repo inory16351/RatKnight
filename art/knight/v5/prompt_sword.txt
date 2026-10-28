@@ -1,0 +1,6 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: sword_sheet.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. After saving, reply only with the file name. Do NOT edit or post-process the image with code.
+
+Attached ref_parts.png = the flat-color parts sheet of our tiny mouse knight. Draw his NEW weapon in exactly the same completely flat style (one solid color per area, NO shading, NO highlight, NO gradient, NO outlines).
+The weapon: a light, elegant one-handed KNIGHT'S ARMING SWORD: a straight, slim, double-edged steel blade with a pointed tip and a subtle center fuller line, a straight brass/gold CROSS-GUARD, a short grip wrapped in navy blue cord, and a round gold pommel. Proportion: blade about 7 times longer than the grip. Clean, sharp, heroic.
+- 1024x1536 portrait, solid flat MAGENTA background (#FF00FF), no text, no shadow.
+- Draw the sword TWICE side by side with a wide gap: left = vertical, blade pointing straight UP; right = the same sword identical (spare copy). Each about 85% of the image height.

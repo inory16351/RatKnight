@@ -1,0 +1,22 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: parts_front.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. After saving, reply only with the file name. Do NOT edit or post-process the image with code: save the generated image as-is.
+
+The attached image view_front.png is our character (tiny apprentice knight mouse) seen from the FRONT, facing the viewer. Make a CUTOUT-ANIMATION PARTS SHEET of EXACTLY this front view.
+- 1536x1536 square, solid flat MAGENTA background (#FF00FF), no text, no labels, no grid lines, no shadows.
+- Lay out the parts in a 4 columns x 3 rows arrangement. Every part sits alone in the middle of its own cell with WIDE magenta gaps; parts never touch each other or the image edge.
+- Draw each part COMPLETE, including the areas normally hidden behind other parts (so it can rotate), with a rounded overlap end at each joint.
+- Same design, same colors, same SCALE as the attached image, same completely FLAT rendering (one solid color per area, NO shading, NO highlight, NO gradient, NO outlines). Keep the chibi proportions exactly (big head, short sturdy limbs).
+Row 1:
+ 1) HEAD only, front view facing the viewer, both big round ears attached, cut at the bottom of the head (no neck, no scarf).
+ 2) TORSO front: chest with leather tunic, small steel chest plate, navy scarf knot with gold clasp at the neck, short neck stub on top; NO arms, NO pauldrons, NO cape, NO belt; ends at the waist.
+ 3) HIPS front: navy belt with gold buckle and the brown tunic skirt below it; no legs.
+ 4) CAPE seen from the front: only the navy cape parts that stick out BEHIND the shoulders and body (a wide navy shape, to be drawn behind the torso), attach point at the top center.
+Row 2:
+ 5) UPPER ARM front view hanging straight down, with the steel shoulder pauldron on top; ends at the elbow (rounded).
+ 6) FOREARM front view hanging straight down with a closed FIST (navy wristband), fist curled as if gripping a stick (empty grip hole), no sword.
+ 7) THIGH front view hanging straight down: fur thigh, ends at the knee.
+ 8) SHIN + BOOT front view straight down: short lower leg in the brown boot with steel toe cap, toe pointing toward the viewer, sole flat.
+Row 3:
+ 9) TAIL: the long thin pink tail curving out to the RIGHT, root at the LEFT end.
+ 10) FOREARM front view with an OPEN relaxed hand (for the free arm).
+ 11) the same front HEAD with eyes squeezed shut and teeth gritted (effort face).
+ 12) the same front HEAD with a fierce shouting face (mouth open, determined eyes) for big attacks.

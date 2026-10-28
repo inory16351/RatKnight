@@ -1,0 +1,7 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: floor.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. After saving, reply only with the file name. Do NOT edit or post-process the image with code.
+
+A horizontally TILEABLE FLOOR STRIP for a cute 2D side-scrolling action game, a clean FLAT vector-style illustration with a POP-ART look (flat bold colors, a few flat halftone dots), same completely flat style as the attached ref_char.png (one solid color per area, no gradients, no texture). It will be pixelated later by code.
+It is the top of a giant wooden kitchen counter / shelf seen from the side at mouse scale: a bright top edge (where characters stand) with a thin highlight line, warm honey-wood planks with a few simple flat grain lines, a few cute details (a scattered crumb, a tiny sugar cube, a nail head), and the front face getting darker toward the bottom.
+- 1536x256 landscape. NOT pixel art: smooth flat vector shapes, crisp edges, limited palette, NO gradients.
+- The standing surface must be a perfectly straight horizontal line about 24 px from the top; above it fully MAGENTA (#FF00FF) background.
+- Left and right edges must tile seamlessly. No characters, no text.

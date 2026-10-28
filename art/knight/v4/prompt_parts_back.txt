@@ -1,0 +1,22 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: parts_back.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. After saving, reply only with the file name. Do NOT edit or post-process the image with code: save the generated image as-is.
+
+The attached image view_back.png is our character (tiny apprentice knight mouse) seen from BEHIND. Make a CUTOUT-ANIMATION PARTS SHEET of EXACTLY this back view.
+- 1536x1536 square, solid flat MAGENTA background (#FF00FF), no text, no labels, no grid lines, no shadows.
+- Lay out the parts in a 4 columns x 3 rows arrangement. Every part sits alone in the middle of its own cell with WIDE magenta gaps; parts never touch each other or the image edge.
+- Draw each part COMPLETE, including the areas normally hidden behind other parts (so it can rotate), with a rounded overlap end at each joint.
+- Same design, same colors, same SCALE as the attached image, same completely FLAT rendering (one solid color per area, NO shading, NO highlight, NO gradient, NO outlines). Keep the chibi proportions exactly (big head, short sturdy limbs).
+Row 1:
+ 1) HEAD only, seen from behind: back of the furry head with both big round ears (ear backs are grey-brown fur), cut at the bottom of the head.
+ 2) TORSO seen from behind: back of the leather tunic, NO cape, NO arms; short neck stub on top; ends at the waist.
+ 3) HIPS seen from behind: navy belt and the brown tunic skirt from behind; no legs.
+ 4) CAPE seen from behind: the navy cape covering the back, hanging straight down from the shoulders to the hips, attach point at the top center (it will be drawn OVER the torso).
+Row 2:
+ 5) UPPER ARM back view hanging straight down, steel shoulder pauldron on top; ends at the elbow (rounded).
+ 6) FOREARM back view hanging straight down with a closed FIST (navy wristband), fist curled as if gripping a stick (empty grip hole), no sword.
+ 7) THIGH back view hanging straight down, ends at the knee.
+ 8) SHIN + BOOT back view straight down: lower leg in the brown boot seen from behind (heel), sole flat.
+Row 3:
+ 9) TAIL seen from behind: the long thin pink tail hanging from the root at the TOP and curving out to the right.
+ 10) FOREARM back view with an OPEN relaxed hand (for the free arm).
+ 11) (leave this cell empty magenta)
+ 12) (leave this cell empty magenta)

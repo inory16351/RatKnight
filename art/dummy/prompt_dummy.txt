@@ -1,0 +1,8 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: dummy_sheet.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. After saving, reply only with the file name. Do NOT post-process the image with code.
+
+Image spec:
+- 1536x1024 landscape, solid flat MAGENTA background (#FF00FF), no floor, no shadow, no text, no frame, no grid lines.
+- Three separate drawings of the SAME training scarecrow dummy, side by side in a row with wide magenta gaps between them, each about 80% of image height, fully inside the image:
+  1) standing straight, 2) the same dummy tilted back about 20 degrees as if just hit (base post stays planted), 3) the same dummy cut in half horizontally at the waist: upper half and lower half drawn as two separate pieces with a clear magenta gap between them, straw bits at the cut.
+- DUMMY design: a knight-training scarecrow for a mouse-sized world: wooden post planted in a small wooden cross-base, burlap sack body stuffed with straw, a round burlap head with a stitched X face and a little dented tin pot as a helmet, one wooden crossbar arm with a tiny wooden shield tied on, rope bindings, straw sticking out.
+- STYLE: same cute flat game illustration style as the attached reference, NO black outlines, and render it COMPLETELY FLAT: every area ONE single solid color fill, NO shading, NO shadow tone, NO highlight, NO gradients, NO texture. Simple dark lines only for stitches.

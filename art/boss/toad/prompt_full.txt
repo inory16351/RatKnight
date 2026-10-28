@@ -1,0 +1,6 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: full.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. Do NOT edit or post-process the image with code. After saving, reply only with the file name.
+
+Attached: ref_char.png = the hero of our cute 2D action game (a tiny chibi mouse knight). Use it ONLY as the style reference: the same completely FLAT style (one solid color per area, NO gradients, NO shading, NO outlines), cute rounded shapes, bold pop-art palette. Do NOT draw the mouse.
+
+Draw the BOSS: "the Toad King of the Sewer" — a HUGE fat toad (about 6 times taller than the mouse hero) who rules the city sewer. Side view facing LEFT, sitting in a ready crouch. Design: round bulky body, wide flat head with a big closed mouth line, two big bulging golden eyes with angry half-lidded brows, warty olive-green back with lighter cream-yellow belly and throat, chunky front arms, big folded back legs with webbed feet, a tiny bent BOTTLE-CAP CROWN tilted on the head, a dirty little cape made of a torn candy wrapper on its back. Mean but funny and cute.
+- 1536x1536, solid flat MAGENTA background (#FF00FF), the toad alone and centered, filling about 80% of the image, nothing touching the edges. No ground, no shadow, no text, no effects.

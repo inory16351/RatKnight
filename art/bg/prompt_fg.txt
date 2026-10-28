@@ -1,0 +1,6 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: bg_fg.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. Do NOT edit or post-process the image with code. After saving, reply only with the file name.
+
+A FOREGROUND LAYER for a cute 2D side-scrolling action game set on a giant kitchen counter at night, seen at MOUSE SCALE, side view. This layer is drawn IN FRONT of the gameplay and will be blurred, darkened and pixelated later by code, so keep shapes big, simple and SPARSE. Same completely FLAT style as the attached bg_far.png (one solid color per area, no gradients, no texture).
+Only a FEW large objects very close to the camera, all rising from the BOTTOM EDGE of the image and only up to about 40% of the image height, with WIDE empty gaps (at least half the width empty): the rim of a giant ceramic bowl, a few huge scattered cookie crumbs, the round end of a giant rolling pin, a fallen giant pea. Dark muted colors.
+- 2048x512 landscape, solid flat MAGENTA background (#FF00FF) everywhere that is not an object, no ground strip, no characters, no text.
+- The left and right edges must tile seamlessly (no object cut at the left/right edge).

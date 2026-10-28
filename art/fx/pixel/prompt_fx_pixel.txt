@@ -1,0 +1,16 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: fx_pixel_sheet.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. After saving, reply only with the file name. Do NOT edit or post-process the image with code: save the generated image as-is.
+
+A sheet of SWORD SLASH EFFECTS for a 2D action game, drawn as crisp PIXEL ART with a POP-ART ARCADE feel (90s arcade beat-em-up / Zenless Zone Zero pop energy, bold and punchy). Attached ref_char.png = our hero (tiny mouse knight with a big sword), only for mood and scale.
+
+- 1536x1536 square, solid flat MAGENTA background (#FF00FF). No text, no labels, no grid lines, no frames. Every item separated by WIDE magenta gaps, never touching each other or the image edge.
+- TRUE PIXEL ART: every pixel is a clean 8x8 block on a fixed grid (so the sheet is really 192x192 art pixels scaled up 8x), hard edges, NO anti-aliasing, NO blur, NO glow, NO gradients, NO soft edges. Dithering with checker pixels is welcome.
+- STRICT PALETTE ONLY: outline dark navy #1E2C66, hot orange #FF8A1F, bright yellow #FFD23A, pale yellow #FFF2A0, pure white #FFFFFF, and a small accent of electric cyan #3DE0FF. Never use pink or magenta inside the effects.
+- Every shape has a 1-pixel dark navy outline (pop-art comic look). Add tiny pixel halftone dots and 1-pixel sparkle crosses for detail.
+
+Row 1 and Row 2: the SAME long horizontal SWORD-TRAIL RIBBON drawn 4 times, stacked one under another, each the same size (about 1400 px wide, 150 px tall) and aligned at the right: the leading HEAD on the RIGHT is a sharp, slightly hooked pointed tip; the TOP edge is the outer blade edge = a 2-pixel pure white hot line; the body is pale yellow -> yellow -> orange toward the BOTTOM (inner) edge, which has jagged pixel teeth; the LEFT end tapers to a 1-pixel needle.
+  strip A = full ribbon, clean.
+  strip B = the left third breaks apart into separate pixel blocks and short slivers that drift down-left.
+  strip C = the left two thirds broken into scattered pixel blocks, slivers and sparkles; only the right part still solid.
+  strip D = only a thin bright sliver of the head remains on the right, the rest is a sparse trail of pixel bits and sparkle crosses.
+Row 3: (a) TIP GLINT, 3 frames left to right: a small 4-point pixel star, a big 4-point star with cyan core flash and speed flicks, a breaking star with 4 tiny bits. (b) HIT IMPACT BURST, 4 frames left to right: small white pop, big spiky pop-art starburst (white core, yellow, orange, navy outline, halftone dots, cyan accent), starburst breaking into rays, fading ring of pixel bits.
+Row 4: (a) 6 small pixel SHARDS/sparks of different shapes. (b) a pixel DUST PUFF, 3 frames (pale beige/grey allowed here), swept to the left. (c) a set of 3 horizontal pixel SPEED LINES of different lengths.

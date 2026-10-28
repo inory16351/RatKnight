@@ -1,0 +1,6 @@
+# 테스트 캡처 (매번 다시 만듦)
+docs/shots/
+__pycache__/
+*.pyc
+# 생성 로그
+art/**/log*.txt

@@ -1,0 +1,4 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: head_back.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. After saving, reply only with the file name.
+
+The attached sheet shows the flat cartoon parts of our cute mouse mascot (a children's game character). Draw ONE new part in exactly the same flat style, colors and size as the head in the top-left of the sheet: the SAME HEAD seen from the BACK. It is simply a round grey-brown fur ball with two big round ears on top (from behind the ears are plain grey-brown fur with a slightly darker rim), a few fur tufts at the bottom edge. No face, no eyes. Completely flat colors, no shading, no outlines.
+- 1024x1024, plain flat magenta background (#FF00FF), the head centered, about 60% of the image, no text.

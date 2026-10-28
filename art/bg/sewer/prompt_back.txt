@@ -1,0 +1,6 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: back.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. Do NOT edit or post-process the image with code. After saving, reply only with the file name.
+
+SETTING: the CITY SEWER under the alley, seen at MOUSE SCALE: the lair of the Toad King boss. Old curved BRICK tunnel walls, big rusty pipes, a round grate with light beams coming down from the street, dripping water, a shallow green-teal sewage stream, floating bottle caps and a paper boat, pop-art graffiti hearts and crowns on the bricks (no letters). STYLE: bold POP-ART comic style, completely FLAT vector shapes (one solid color per area, NO gradients, NO glow blur, NO texture), crisp edges, flat Ben-Day halftone dots as decoration, palette: dark teal-green, murky olive, brick red-brown, with neon magenta and lemon yellow accents. It will be pixelated later by code. NOT pixel art. No characters, no animals, no text.
+
+THIS IMAGE = the BACKGROUND of the boss arena: the curved brick tunnel wall with pipes, the street grate with light beams in the upper middle, graffiti, darker toward the edges. Low-mid contrast so characters pop. Nothing important in the bottom 15%.
+- 2048x1024 landscape. Left and right edges must tile seamlessly.
