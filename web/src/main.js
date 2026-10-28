@@ -81,7 +81,7 @@ const SMEAR = [];
 let time = 0, hitstop = 0, shake = 0, slowT = 0, zoom = 1, zoomTgt = 1, flashScreen = 0, impactT = 0, wmat = null;
 let rig, dummyImg = {}, fullImg;
 
-const RUN = 300, ACC = 2600, AIR_ACC = 1700, JUMP_V = 700, GRAV = 2000, DASH_V = 760;   // 점프 ≈ 122px (높은 선반 180px 은 여전히 이단 점프 필요)
+const RUN = 300, ACC = 2600, AIR_ACC = 1700, JUMP_V = 780, GRAV = 2000, DASH_V = 760;   // 점프 ≈ 152px (높은 출구 180px 은 여전히 이단 점프 필요)
 
 function groundAt(x, yPrev, y) {
   // 위에서 떨어질 때만 발판에 섬
