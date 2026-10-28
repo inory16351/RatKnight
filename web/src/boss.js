@@ -5,6 +5,9 @@
 //  · 2페이즈: 체력 50% 이하에서 울부짖고 붉어지며 빨라지고, 짓누르기 뒤 곧바로 혀
 //  · 빈틈: 언제든 때릴 수 있고, 혀가 박혔을 때·착지 직후엔 피해 2배, 박힌 혀를 베면 휘청
 // 몸은 컷아웃 리그(부위 그림 + 관절). 그림이 오기 전엔 같은 관절 구조를 임시 도형으로 그림.
+import { rect, body, area, line, grow, touches, GRACE } from './hitbox.js';
+import { SHADE, bakeLit } from './shade.js';
+const LIGHT_ANG = Math.atan2(-0.85, -0.5);   // rig.js LIGHT 와 같은 빛 (화면 기준, 왼쪽 위)
 const HP = 260, TONGUE_MAX = 560, G2 = 1600;
 // ---------- 컷아웃 리그 (art/boss/toad/cut, Codex 부위 시트) ----------
 // 좌표 = 리그 공간(그림 px, 원점 = 발밑 가운데, 왼쪽을 봄) × K. at = 부모 공간에서 관절 자리, piv = 부위 그림 속 관절 자리
@@ -22,15 +25,23 @@ const RIG = {
 };
 export const TOAD = {
   rig: null,
+  // 부위 그림 → 화면 도트 2칸당 1텍셀로 미리 줄이고(고품질) → 코드 셰이더 명암(왼쪽/오른쪽을 볼 때 빛 방향 각각) 을 한 번 구움.
+  // 실제 도트화는 그릴 때 보스 전용 pixLayer(도트 4px, 배경 굵기)에서 한꺼번에 → 돌아가는 부위도 같은 격자로 끊김
   async load(loadImg) {
-    const im = {};
-    for (const n of ['body', 'jaw', 'arm', 'hand', 'thigh', 'foot', 'lidA', 'lidB', 'tip', 'tseg', 'throatBig']) im[n] = await loadImg(`../art/boss/toad/cut/${n}.png`);
+    const im = {}, f = K / 4 * 2;
+    for (const n of ['body', 'jaw', 'arm', 'hand', 'thigh', 'foot', 'lidA', 'lidB', 'tip', 'tseg', 'throatBig']) {
+      const raw = await loadImg(`../art/boss/toad/cut/${n}.png`); if (!raw) continue;
+      const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(raw.width * f)); c.height = Math.max(1, Math.round(raw.height * f));
+      const x = c.getContext('2d', { willReadFrequently: true }); x.imageSmoothingQuality = 'high'; x.drawImage(raw, 0, 0, c.width, c.height);
+      im[n] = { W: raw.width, H: raw.height, flat: c, L: bakeLit(c, LIGHT_ANG), R: bakeLit(c, Math.PI - LIGHT_ANG) };
+    }
     if (im.body) TOAD.rig = im;
   },
   mouth: () => [RIG.mouth[0] * K, RIG.mouth[1] * K],
   draw(c, p, B) {   // c 는 이미 (발밑, 보는 쪽, 몸 쏠림·눌림) 변환됨
     const I = TOAD.rig, R = Math.PI / 180;
-    const put = (n, ang = 0, s = 1) => { const r = RIG[n], im = I[n]; if (!im) return; c.save(); c.translate(r.at[0], r.at[1]); c.rotate(ang * R); c.scale(s, s); c.drawImage(im, -(r.piv?.[0] ?? im.width / 2), -(r.piv?.[1] ?? im.height / 2)); c.restore(); };
+    const side = B.dir < 0 ? 'L' : 'R', pick = im => SHADE.on ? im[side] : im.flat;   // 리그는 왼쪽을 보는 그림 → 오른쪽을 볼 땐 뒤집혀 그려지니 빛도 뒤집어 구운 쪽
+    const put = (n, ang = 0, s = 1) => { const r = RIG[n], im = I[n]; if (!im) return; c.save(); c.translate(r.at[0], r.at[1]); c.rotate(ang * R); c.scale(s, s); c.drawImage(pick(im), -(r.piv?.[0] ?? im.W / 2), -(r.piv?.[1] ?? im.H / 2), im.W, im.H); c.restore(); };
     c.save(); c.scale(K, K);
     if (B.flash > 0.3) c.filter = 'brightness(0) invert(1)';   // 맞은 순간 하얗게
     else if (B.tint > 0.05) c.filter = `sepia(${0.5 * B.tint}) saturate(${1 + 1.2 * B.tint}) hue-rotate(${-28 * B.tint}deg)`;   // 2페이즈: 붉게 달아오름
@@ -51,8 +62,8 @@ export const TOAD = {
   drawTongue(c, mx, my, tx, ty) {   // 혀 띠를 입끝 → 끝까지 늘이고 끝 그림
     const I = TOAD.rig, len = Math.hypot(tx - mx, ty - my), a = Math.atan2(ty - my, tx - mx);
     c.save(); c.translate(mx, my); c.rotate(a);
-    if (I.tseg) c.drawImage(I.tseg, 0, -13, len, 26);
-    if (I.tip) c.drawImage(I.tip, len - 26, -25, 52, 50);
+    if (I.tseg) c.drawImage(I.tseg.L, 0, -13, len, 26);
+    if (I.tip) c.drawImage(I.tip.L, len - 26, -25, 52, 50);
     c.restore();
   },
 };
@@ -61,7 +72,7 @@ export function makeToad(api, x) {
   const B = {
     x, y: api.GROUND, dir: -1, hp: HP, max: HP, phase: 1, state: 'intro', t: 0, last: '', vuln: false,
     flash: 0, tint: 0, lastHit: -1, shadowX: null, target: x,
-    tongue: { len: 0, ang: 0 }, drops: [], waves: [], puddles: [],
+    tongue: { len: 0, ang: 0 }, drops: [], waves: [], puddles: [], cols: [],
     pose: { lift: 0, sx: 1, sy: 1, rot: 0, jaw: 0, throat: 0, thigh: 0, arm: 0, blink: 0 },
   };
   const spd = () => (B.phase === 2 ? 0.75 : 1);   // 2페이즈: 모든 예비 동작이 짧아짐
@@ -70,6 +81,7 @@ export function makeToad(api, x) {
   const tip = () => { const [mx, my] = mouth(), a = B.tongue.ang; return [mx + Math.cos(a) * B.tongue.len * B.dir, my + Math.sin(a) * B.tongue.len]; };
   const go = s => { B.state = s; B.t = 0; };
   const P = api.P;
+  const attack = (shape, feet = false) => { B.cols.push(shape); return api.attack(shape, B.x, feet); };
 
   function choose() {
     const dx = Math.abs(P.x - B.x);
@@ -80,6 +92,7 @@ export function makeToad(api, x) {
   }
 
   B.update = dt => {
+    B.cols = [];
     B.t += dt; B.flash = Math.max(0, B.flash - dt * 6);
     B.tint += ((B.phase === 2 ? 1 : 0) - B.tint) * Math.min(1, dt * 3);
     const p = B.pose, s = spd(), breathe = Math.sin(api.time() * 3);
@@ -112,9 +125,10 @@ export function makeToad(api, x) {
       }
       case 'tongueOut': {
         p.jaw = 30; p.rot = 4;
+        const previous = tip();
         B.tongue.len = Math.min(TONGUE_MAX, B.tongue.len + 1700 * dt / s);
         const [tx, ty] = tip();
-        if (Math.hypot(tx - P.x, ty - (P.y - 30)) < 34 && P.state !== 'dead') { api.hurt(B.x); go('tongueGrab'); break; }
+        if (attack(line(previous[0], previous[1], tx, ty, 34))) { go('tongueGrab'); break; }
         if (ty >= api.GROUND - 4 || tx < 20 || tx > api.roomW() - 20 || B.tongue.len >= TONGUE_MAX) { go('tongueStuck'); api.fx.dust(tx, Math.min(ty, api.GROUND), B.dir, 0.8); }
         break;
       }
@@ -123,7 +137,7 @@ export function makeToad(api, x) {
         B.tongue.len = Math.max(0, B.tongue.len - 1300 * dt);
         const [tx, ty] = tip(); P.x = tx; P.y = Math.min(api.GROUND, ty + 30); P.vx = 0; P.vy = 0; P.state = 'hurt'; P.t = 0;
         if (B.tongue.len <= 40) {
-          P.inv = 0; api.hurt(B.x);   // 깨물림
+          P.inv = 0; attack(area(tx, ty, 38));   // 잡힌 쥐가 입에 닿을 때 깨물기 콜라이더
           P.vx = B.dir * 520; P.vy = -380; P.ground = false;   // 보스 앞쪽으로 뱉어 냄
           api.fx.sfx('꿀꺽!', B.x + B.dir * 120, B.y - 220, B.dir, true); api.shake(8);
           B.tongue.len = 0; go('idle');
@@ -163,7 +177,7 @@ export function makeToad(api, x) {
           api.shake(14); api.impact(); api.fx.dust(B.x, B.y, -1, 2.4); api.fx.dust(B.x, B.y, 1, 2.4);
           api.fx.sfx('쿠웅!!', B.x, B.y - 260, B.dir, true);
           B.waves.push({ x: B.x - 120, d: -1, t: 0 }, { x: B.x + 120, d: 1, t: 0 });
-          if (Math.abs(P.x - B.x) < 130 && P.y > B.y - 160) api.hurt(B.x);   // 깔림
+          attack(body(B.x, B.y, 130, 160));   // 착지 순간 짓누르기 콜라이더
         }
         break;
       case 'land':   // 착지 직후 빈틈 (피해 2배)
@@ -187,38 +201,51 @@ export function makeToad(api, x) {
         p.rot = Math.min(80, B.t * 120); p.sy = 1 - Math.min(0.2, B.t * 0.2); p.jaw = 30; p.blink = 1;
         break;
     }
+    // 리그 2차 동작: 상태마다 앞팔 목표 각도로 따라감 (몸통 동작에 팔이 늦게 끌려오는 맛)
+    const ARM = { idle: breathe * 5, intro: -18, roar: -30, tongueAim: -10, tongueOut: 14, tongueGrab: 10, tongueStuck: 18, stagger: 25, jumpCrouch: -28, jumpUp: 38, jumpHang: 38, jumpDrop: -34, land: 16, spitInflate: -12, spitRec: 8, dead: 42 };
+    p.arm += ((ARM[B.state] ?? 0) - p.arm) * Math.min(1, dt * 14);
     // 물방울 → 웅덩이
     for (const d of B.drops) {
+      const previous = [d.x, d.y];
       d.vy += G2 * dt; d.x += d.vx * dt; d.y += d.vy * dt;
-      if (Math.hypot(d.x - P.x, d.y - (P.y - 30)) < 26) { api.hurt(d.x); d.dead = true; }
+      if (attack(line(previous[0], previous[1], d.x, d.y, 22))) d.dead = true;
       if (d.y >= api.GROUND) { d.dead = true; B.puddles.push({ x: d.x, t: 0 }); api.fx.dust(d.x, api.GROUND, 1, 0.6); }
     }
     B.drops = B.drops.filter(d => !d.dead);
-    for (const w of B.puddles) { w.t += dt; if (w.t < 1.6 && P.ground && Math.abs(P.x - w.x) < 34) api.hurt(w.x); }
+    for (const w of B.puddles) { w.t += dt; if (w.t < 1.6) attack(rect(w.x - 34, w.x + 34, api.GROUND - 7, api.GROUND + 3), true); }
     B.puddles = B.puddles.filter(w => w.t < 1.6);
     // 충격파: 바닥을 타고 퍼짐 — 땅에 서 있으면 맞음
-    for (const w of B.waves) { w.t += dt; w.x += w.d * 560 * dt; if (P.ground && Math.abs(P.x - w.x) < 26) api.hurt(w.x); }
+    for (const w of B.waves) {
+      const previous = w.x; w.t += dt; w.x += w.d * 560 * dt;
+      attack(rect(Math.min(previous, w.x) - 16, Math.max(previous, w.x) + 16, api.GROUND - 46 * (1 - w.t / 0.9) - 10, api.GROUND + 3), true);
+    }
     B.waves = B.waves.filter(w => w.t < 0.9);
   };
 
-  // 판정: 몸(4점) · 혀(박혔을 때 · 나가는 중)를 공격 범위로 검사. 한 공격에 한 번
-  B.hitBy = (c, atkId, inR) => {
+  B.hurtBoxes = () => {
+    if (['dead', 'intro', 'roar', 'jumpUp', 'jumpHang'].includes(B.state)) return [];
+    const boxes = [grow(body(B.x, B.y - B.pose.lift, 175 * B.pose.sx, 220 * B.pose.sy), GRACE.hurt)];
+    if (B.tongue.len > 60) { const [mx, my] = mouth(), [tx, ty] = tip(); boxes.push(line(mx, my, tx, ty, 30 + GRACE.hurt * 2)); }
+    return boxes;
+  };
+  // 몸과 혀도 실제 면적 콜라이더. 한 공격에 한 번만 피해.
+  B.hitBy = (c, atkId, attackBox) => {
     if (B.state === 'dead' || B.state === 'intro' || B.state === 'roar' || B.lastHit === atkId) return false;
     if (B.state === 'jumpUp' || B.state === 'jumpHang') return false;   // 화면 밖
     const by = B.y - B.pose.lift;
-    const body = [[B.x, by - 60], [B.x, by - 170], [B.x - 110, by - 90], [B.x + 110, by - 90]].some(([x, y]) => inR(x, y));
-    let onTongue = false;
-    if (!body && B.tongue.len > 60) { const [tx, ty] = tip(), [mx, my] = mouth(); for (let k = 0.3; k <= 1; k += 0.14) if (inR(mx + (tx - mx) * k, my + (ty - my) * k)) { onTongue = true; break; } }
-    if (!body && !onTongue) return false;
+    const boxes = B.hurtBoxes(), onBody = touches(attackBox, boxes[0]);
+    const onTongue = !onBody && touches(attackBox, boxes[1]);
+    if (!onBody && !onTongue) return false;
     B.lastHit = atkId;
-    const dmg = (c.dmg || 8) * (B.vuln ? 2 : 1);
+    const dmg = api.dmgOf(c) * (B.vuln ? 2 : 1);
     B.hp -= dmg; B.flash = 1;
     const [hx, hy] = onTongue ? tip() : [B.x + (P.x < B.x ? 90 : -90), by - 110];   // 몸 반대쪽(벤 칼이 빠져나간 쪽)에서 터짐
+    api.fx.damage(dmg, hx, hy - 120, B.vuln ? 'crit' : c.fin ? 'fin' : 'boss');
     api.fx.hitBurst(hx, hy, P.facing, B.vuln || c.fin, c.hitUp ?? 0);
     if (c.sfx) api.fx.sfx(c.sfx, hx, hy - 90, P.facing, B.vuln);
     api.hitstop(Math.max(c.stop || 0.05, B.vuln ? 0.1 : 0)); api.shake(B.vuln ? 8 : 4); api.impact();
     if (onTongue && B.state === 'tongueStuck') go('stagger');
-    if (B.hp <= 0) { B.hp = 0; go('dead'); B.tongue.len = 0; B.drops = []; B.waves = []; api.onDefeat(B); }
+    if (B.hp <= 0) { B.hp = 0; go('dead'); B.tongue.len = 0; B.drops = []; B.waves = []; B.puddles = []; B.cols = []; api.onDefeat(B); }
     else if (B.phase === 1 && B.hp <= B.max / 2) { B.phase = 2; go('roar'); B.tongue.len = 0; api.banner('개굴대왕이 분노했다!', 2); api.fx.sfx('개구울!!!', B.x, B.y - 320, B.dir, true); }
     return true;
   };

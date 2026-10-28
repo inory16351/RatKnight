@@ -1,0 +1,13 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: sheet.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. Do NOT edit or post-process the image with code. After saving, reply only with the file name.
+
+Attached: ref_style.png = the HERO of our 2D action game (a tiny chibi mouse knight). Use it ONLY as the STYLE reference: the same completely FLAT style (one solid color per area, NO shading, NO highlight, NO gradient, NO outlines), the same cute rounded shapes and the same scale feel. Do NOT draw the mouse. The game is set in a modern human city at night seen at mouse scale, pop-art comic mood.
+
+Draw an ENEMY animation sheet: a tough CITY PIGEON that flies in the air, puffs up to throw a fan of sharp feathers, and dives with a wing slam. Design: plump grey-blue body, iridescent green-magenta neck patch (as flat color shapes), orange eye with an angry brow, short beak, pink feet, a tiny torn bandana around its neck. Big compared to the mouse hero (about 1.5 times the hero body). Side view, facing RIGHT in every frame.
+- 1536x1024, solid flat MAGENTA background (#FF00FF), no text, no labels, no grid lines, no ground, no shadows, no speed lines, no effects. 3 columns x 2 rows, each frame alone in its own cell with WIDE magenta gaps; nothing touches another cell or the image edge. All frames at the SAME SCALE.
+Frames (left to right, top to bottom):
+ 1) FLY A: flapping, wings up.
+ 2) FLY B: flapping, wings down.
+ 3) PUFF: hovering, chest puffed up big, wings spread wide open showing sharp feathers, ready to throw.
+ 4) DIVE: dashing forward diagonally down, wings swept back, beak forward.
+ 5) HURT: flinching, feathers ruffled, eyes squeezed shut.
+ 6) DEAD: falling on its back, wings limp, eyes as X marks, a couple of loose feathers.

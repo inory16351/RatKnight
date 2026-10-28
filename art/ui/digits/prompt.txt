@@ -1,0 +1,6 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: sheet.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. Do NOT edit or post-process the image with code. After saving, reply only with the file name.
+
+Attached: ref_style.png = the hero of our pop-art 2D action game, for the overall mood only.
+
+Draw a DAMAGE NUMBER FONT SHEET for a pop-art comic action game: the ten Arabic digits 0 1 2 3 4 5 6 7 8 9, each drawn as a big CHUNKY comic-book display numeral: heavy rounded bold shapes, slightly italic (leaning right), each digit filled with SOLID FLAT PURE WHITE (#FFFFFF) and surrounded by a very THICK solid PURE BLACK (#000000) outline of even width (about 8% of the digit height). NO other colors, NO gradients, NO halftone, NO shadow, NO 3D extrusion, NO highlights inside the white fill. All digits the SAME height and the same style, like one font.
+- 2048x1024, solid flat MAGENTA background (#FF00FF). 5 columns x 2 rows: top row 0 1 2 3 4, bottom row 5 6 7 8 9. Each digit alone in its own cell with WIDE magenta gaps; nothing touches another digit or the image edge. No labels, no grid lines, no other text.

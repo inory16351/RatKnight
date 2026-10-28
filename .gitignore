@@ -2,5 +2,7 @@
 docs/shots/
 __pycache__/
 *.pyc
+.codex-build/
+.codex-finalizer/
 # 생성 로그
 art/**/log*.txt

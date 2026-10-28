@@ -202,6 +202,19 @@ export function drawRig(ctx, P, pose, ax, ay, facing, opt = {}) {
 // 부위는 정면 그림 기준, 팔다리 0 = 아래로 늘어짐. 각도 + = 몸 바깥쪽으로 벌어짐 (L = 보는 사람 왼쪽 = 칼 든 팔, R = 빈손)
 // pose: { torso, head, aL, eL, aR, eR, tL, sL, tR, sR, cape, tail, y, sq } · 뒷모습(back)은 좌우를 뒤집고 머리 = headBack, 망토를 몸 위에 그림
 export const FZERO = { torso: 0, head: 0, aL: 20, eL: 0, aR: 12, eR: 6, tL: 4, sL: -4, tR: 4, sR: -4, cape: 0, tail: 0, y: 0, sq: 0 };
+// 그리기 전에도 같은 시각의 손 위치 계산. 이전 프레임의 frontHand를 궤적 샘플에 재사용하지 않음.
+export function frontGripAt(P, pose, ax, ay, facing, view) {
+  const q = { ...FZERO, ...pose }, back = view === 'back', th = P.thigh.j.knee[1], sh = P.shin.j.sole[1];
+  const legH = (t, s) => th * Math.cos(t * Math.PI / 180) + sh * Math.cos((t + s) * Math.PI / 180);
+  const hipNow = Math.max(legH(q.tL, q.sL), legH(q.tR, q.sR)) + P.hips.j.hipL[1];
+  const m = new DOMMatrix();
+  m.translateSelf(ax, ay).scaleSelf(facing * (back ? -1 : 1), 1).translateSelf(0, q.y);
+  if (q.sq) m.scaleSelf(1 + q.sq * 0.5, 1 - q.sq);
+  m.scaleSelf(1 / SS, 1 / SS).translateSelf(0, -hipNow).translateSelf(...P.hips.j.waist).rotateSelf(q.torso);
+  m.translateSelf(...P.torso.j.shoulderL).rotateSelf(q.aL).translateSelf(...P.upperArm.j.elbow).rotateSelf(q.eL);
+  const h = m.transformPoint(new DOMPoint(...P.foreArm.j.hand));
+  return [h.x, h.y];
+}
 export function drawFront(ctx, P, pose, ax, ay, facing, view, opt = {}) {
   const q = { ...FZERO, ...pose };
   const S = 1 / SS, back = view === 'back';
@@ -228,8 +241,13 @@ export function drawFront(ctx, P, pose, ax, ay, facing, view, opt = {}) {
   const arm = (side, a, e, hand) => torsoFrame(() => {
     const k = side === 'L' ? 1 : -1;
     ctx.translate(...P.torso.j['shoulder' + side]); ctx.rotate(R(-k * a)); put(P.upperArm);
-    ctx.translate(...P.upperArm.j.elbow); ctx.rotate(R(-k * e)); put(hand);
-    if (side === 'L') { const m = ctx.getTransform(), h = P.foreArm.j.hand; frontHand.at = [m.a * h[0] + m.c * h[1] + m.e, m.b * h[0] + m.d * h[1] + m.f]; }
+    ctx.translate(...P.upperArm.j.elbow); ctx.rotate(R(-k * e));
+    if (side === 'L') {
+      const m = ctx.getTransform(), h = P.foreArm.j.hand;
+      frontHand.at = [m.a * h[0] + m.c * h[1] + m.e, m.b * h[0] + m.d * h[1] + m.f];
+      opt.weapon?.(frontHand.at);
+    }
+    put(hand);
   });
   const cape = () => torsoFrame(() => { ctx.save(); ctx.translate(...P.torso.j.cape); ctx.rotate(R(q.cape * 0.2)); put(P.cape); ctx.restore(); });
   const tail = () => { ctx.save(); ctx.translate(...P.hips.j.tail); ctx.rotate(R(q.tail)); put(P.tail); ctx.restore(); };

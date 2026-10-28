@@ -115,3 +115,26 @@ export function variantFor(ctx, worldAng) {
   let ang = Math.atan2(ly, lx); if (ang < 0) ang += Math.PI * 2;
   return Math.round((ang / (Math.PI * 2)) * ANGLES) % ANGLES;
 }
+
+// 거의 돌지 않는 큰 부위(보스 등): 빛 각도 하나로만 명암을 구움
+export function bakeLit(img, ang) {
+  const n = img.__n || (img.__n = normals(img));
+  return bakeOne(n, ang);
+}
+
+// 플랫하게 뽑은 그림을 코드로 픽셀화: cell 배 작게 줄여(평균색) 색을 step 단위로 끊고, 그릴 때 최근접으로 키움. 불러올 때 한 번만 굽는다
+export function pixelate(im, cell, step = 24) {
+  if (!im) return null;
+  const w = Math.max(1, Math.round(im.width / cell)), h = Math.max(1, Math.round(im.height / cell));
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const x = c.getContext('2d', { willReadFrequently: true });
+  x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(im, 0, 0, w, h);
+  const d = x.getImageData(0, 0, w, h), p = d.data;
+  for (let i = 0; i < p.length; i += 4) {
+    if (p[i + 3] < 128) { p[i + 3] = 0; continue; }
+    p[i + 3] = 255;
+    for (let k = 0; k < 3; k++) p[i + k] = Math.round(p[i + k] / step) * step;
+  }
+  x.putImageData(d, 0, 0);
+  return c;
+}

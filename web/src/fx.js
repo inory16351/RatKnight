@@ -242,12 +242,15 @@ function drawStreaks(ctx) {
       if (d < 8) { dx = 0; dy = 1; d = 1; }
       s.dRef = s.dRef || d; if (d > s.dRef * 1.1) { dx *= s.dRef * 1.1 / d; dy *= s.dRef * 1.1 / d; d = s.dRef * 1.1; }   // 굵기는 시작할 때 칼 길이로 고정 (정면·뒷모습으로 바뀌며 손 자리가 튀어도 갑자기 두꺼워지지 않게)
       // 폭 = 칼 길이의 대부분 (칼에 두껍게 붙어 따라오는 부채꼴) · wFix = 어느 자리든 같은 굵기의 얇은 띠 (수평 회전 베기)
-      const w = (s.wFix ?? Math.min(180, Math.max(60, d * 0.95))) * (s.wMul ?? 1) * Math.pow(1 - age, 0.35) * Math.min(1, (p.at - P[0].at) / 0.02 + 0.2);
+      const width = s.tipAttached ? Math.min(150, d * 0.78) : Math.min(180, Math.max(60, d * 0.95));
+      const w = (s.wFix ?? width) * (s.wMul ?? 1) * Math.pow(1 - age, 0.35) * Math.min(1, (p.at - P[0].at) / 0.02 + 0.2);
       seg.push({ x: p.x, y: p.y, vx: dx / d * w, vy: dy / d * w, a: 1 - age * age });
     }
     if (seg.length < 2) continue;
     // 점 위치를 여러 번 평균내 모서리를 둥글게 (칼끝 샘플이 꺾여도 곡선으로)
-    for (let pass = 0; pass < 5; pass++) for (let i = 1; i < seg.length - 1; i++) { seg[i].x = (seg[i - 1].x + 2 * seg[i].x + seg[i + 1].x) / 4; seg[i].y = (seg[i - 1].y + 2 * seg[i].y + seg[i + 1].y) / 4; }
+    for (let pass = 0; pass < 5; pass++) for (let i = 1; i < seg.length - 1; i++) {
+      for (const key of s.tipAttached ? ['x', 'y', 'vx', 'vy'] : ['x', 'y']) seg[i][key] = (seg[i - 1][key] + 2 * seg[i][key] + seg[i + 1][key]) / 4;
+    }
     // 호 길이(arc length) 기준으로 다시 뽑음: 칼끝이 멈춰 점이 한 자리에 겹쳐도(앞쪽 끝) 굵기 곡선이 길이 위에서 끝까지 이어져
     // 양 끝이 한 점으로 모이며(소실점) 사라짐
     const n1 = seg.length - 1, cum = [0];
@@ -256,16 +259,17 @@ function drawStreaks(ctx) {
     if (Ltot < 2) continue;
     s.maxL = Math.max(s.maxL || 0, Ltot);
     const shrink = Math.min(1, Ltot / Math.max(1, s.maxL * 0.75));   // 꼬리가 칼끝(머리) 쪽으로 따라붙으며 줄어들 땐 굵기도 같이 가늘어져 점으로 소멸
-    const K = 30, S = [];
+    const K = s.tipAttached ? 96 : 30, S = [];
     let j = 0;
     for (let k = 0; k <= K; k++) {
       const q = k / K, d = q * Ltot;
       while (j < n1 - 1 && cum[j + 1] < d) j++;
       const a = seg[j], b = seg[j + 1], span = cum[j + 1] - cum[j], u = span > 1e-6 ? Math.max(0, Math.min(1, (d - cum[j]) / span)) : 0;
-      const cap = q > 0.92 ? Math.sqrt(Math.max(0, 1 - Math.pow((q - 0.92) / 0.08, 2))) * 0.9 + 0.1 : 1;   // 머리 끝은 둥글게 닫음
+      const cap = q > 0.92 ? Math.sqrt(Math.max(0, 1 - Math.pow((q - 0.92) / 0.08, 2))) * (s.tipAttached ? 1 : 0.9) + (s.tipAttached ? 0 : 0.1) : 1;   // 3타 머리는 실제 칼끝 한 점으로 매끈하게 닫음
       const prof = Math.pow(q, s.wFix ? 1.7 : 1.1) * cap;   // 칼에 붙는 머리 쪽이 가장 굵고, 꼬리로 갈수록 확 가늘어져 바늘 끝으로 (수평 띠는 더 가파르게)
       const rx = a.vx + (b.vx - a.vx) * u, ry = a.vy + (b.vy - a.vy) * u, rl = Math.hypot(rx, ry) || 1;
-      S.push({ x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u, vx: rx * prof * shrink, vy: ry * prof * shrink, nx: rx / rl, ny: ry / rl });
+      const crest = s.tipAttached ? Math.sin(Math.PI * q) * 30 * shrink : 0;
+      S.push({ x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u - crest, vx: rx * prof * shrink, vy: ry * prof * shrink, nx: rx / rl, ny: ry / rl });
     }
     if (FX.ribbonTex && (IMG.v2_rib_0 || IMG.trail || IMG.bd_rib_0 || IMG.fl_rib_0 || IMG.px_rib_0)) { drawRibbon(ctx, s, S, Ltot, shrink, LIFE); continue; }
     const mid = (u, v) => [(u[0] + v[0]) / 2, (u[1] + v[1]) / 2];
@@ -460,6 +464,79 @@ function drawTexts(ctx) {
   }
 }
 
+// ---------- 데미지 숫자 (팝아트) ----------
+// 숫자 글꼴 = art/ui/digits/cut/0~9.png (Codex: 흰 채움 + 굵은 검은 외곽). 그림이 없으면 같은 모양을 글꼴로 구워 대신 씀.
+// 색은 코드로: 흰 채움만 그 색으로 물들이고 밝은 망점을 얹음, 외곽은 검정 유지. 뒤에 어긋난 색판(인쇄 어긋남) 한 장.
+const DIGITS = [], TINT = {}, NUMS = [];
+export const DMG_STYLE = {   // [채움, 어긋난 색판]
+  normal: ['#ffe14a', '#ff3d7f'],
+  crit: ['#ff3d7f', '#2fe6ff'],   // 빈틈(2배) 피해
+  fin: ['#ff9a1f', '#5b3dff'],    // 막타
+  boss: ['#b8ff3c', '#ff3d7f'],
+};
+export async function loadDigits(dir) {
+  const load = src => new Promise(ok => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => ok(null); im.src = src; });
+  for (let i = 0; i < 10; i++) {
+    const im = await load(`${dir}/${i}.png`);
+    DIGITS[i] = im ? toCanvas(im, 150) : fontDigit(i);
+  }
+}
+function toCanvas(im, H) {   // 높이 H 로 맞춰 둠 (모든 숫자 같은 높이)
+  const k = H / im.height, c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = H;
+  const x = c.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(im, 0, 0, c.width, H); return c;
+}
+function fontDigit(i) {
+  const c = document.createElement('canvas'); c.width = 120; c.height = 150;
+  const x = c.getContext('2d'); x.translate(60, 80); x.transform(1, 0, -0.12, 1, 0, 0);
+  x.font = "130px 'Black Han Sans', 'Noto Sans KR', sans-serif"; x.textAlign = 'center'; x.textBaseline = 'middle'; x.lineJoin = 'round';
+  x.lineWidth = 20; x.strokeStyle = '#000'; x.strokeText(String(i), 0, 0); x.fillStyle = '#fff'; x.fillText(String(i), 0, 0);
+  return c;
+}
+function tinted(i, col, plate = false) {
+  const key = i + col + plate; if (TINT[key]) return TINT[key];
+  const src = DIGITS[i]; if (!src) return null;
+  const c = document.createElement('canvas'); c.width = src.width; c.height = src.height;
+  const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(src, 0, 0);
+  const d = x.getImageData(0, 0, c.width, c.height), p = d.data, n = parseInt(col.slice(1), 16), rgb = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  for (let k = 0; k < p.length; k += 4) {
+    if (p[k + 3] < 128) { p[k + 3] = 0; continue; }
+    p[k + 3] = 255;
+    if (plate) { p[k] = rgb[0]; p[k + 1] = rgb[1]; p[k + 2] = rgb[2]; continue; }
+    if (p[k] + p[k + 1] + p[k + 2] < 330) { p[k] = p[k + 1] = p[k + 2] = 17; continue; }   // 외곽
+    const px = (k / 4) % c.width, py = (k / 4 / c.width) | 0, D = 11;
+    const u = (px + py) / Math.SQRT2 / D, v = (px - py) / Math.SQRT2 / D, dot = Math.hypot(u - Math.round(u), v - Math.round(v)) < 0.22 && py < c.height * 0.55;   // 위쪽 절반에 밝은 망점
+    for (let j = 0; j < 3; j++) p[k + j] = dot ? rgb[j] + (255 - rgb[j]) * 0.6 : rgb[j];
+  }
+  x.putImageData(d, 0, 0);
+  return (TINT[key] = c);
+}
+// 피해 숫자 띄우기: 숫자마다 조금씩 늦게 튀어나와 통통 튐 → 위로 떠오르며 사라짐
+export function damage(v, x, y, kind = 'normal') {
+  const big = kind === 'crit' || kind === 'fin';
+  NUMS.push({ s: String(Math.max(0, Math.round(v))), x, y, kind, t: 0, life: big ? 0.95 : 0.75, h: big ? 62 : 46, rot: (Math.random() - 0.5) * 0.24, vx: (Math.random() - 0.5) * 50 });
+}
+function drawNums(ctx) {
+  for (const q of NUMS) {
+    const [fill, plate] = DMG_STYLE[q.kind] || DMG_STYLE.normal, u = q.t / q.life;
+    const ws = [...q.s].map(ch => { const im = DIGITS[+ch]; return im ? im.width / im.height * q.h * 0.74 : 0; });
+    let x = -ws.reduce((a, b) => a + b, 0) / 2;
+    ctx.save(); ctx.translate(q.x, q.y - 46 * Math.min(1, u * 1.6) - u * 14); ctx.rotate(q.rot);
+    ctx.globalAlpha = u > 0.72 ? 1 - (u - 0.72) / 0.28 : 1;
+    [...q.s].forEach((ch, i) => {
+      const lt = q.t - i * 0.045; if (lt < 0) { x += ws[i]; return; }
+      const im = DIGITS[+ch], a = tinted(+ch, fill), b = tinted(+ch, plate, true); if (!im) return;
+      const pop = lt < 0.08 ? 0.3 + lt / 0.08 * 1.1 : lt < 0.18 ? 1.4 - (lt - 0.08) / 0.1 * 0.4 : 1;   // 튀어나옴 → 살짝 넘침 → 제자리
+      const w = im.width / im.height * q.h, cx = x + ws[i] / 2, by = -Math.max(0, Math.sin(Math.min(1, lt / 0.22) * Math.PI)) * 8;
+      ctx.save(); ctx.translate(cx, by); ctx.scale(pop, pop); ctx.rotate((i % 2 ? 1 : -1) * 0.06);
+      ctx.drawImage(b, -w / 2 + 4, -q.h / 2 + 4, w, q.h);   // 어긋난 색판
+      ctx.drawImage(a, -w / 2, -q.h / 2, w, q.h);
+      ctx.restore();
+      x += ws[i];
+    });
+    ctx.restore();
+  }
+}
+
 // 집중선 (막타 임팩트 컷): 화면 가장자리에서 중심으로 몰리는 검은 쐐기 + 망점 테두리. 화면 좌표로 그림
 export function focusLines(cx, cy, life = 0.28) { FX.lines = { cx, cy, t: 0, life, seed: Math.random() * 1000 }; }
 export function drawFocus(ctx, w, h) {
@@ -519,6 +596,8 @@ export function update(dt, now) {
   FX.sweeps = (FX.sweeps || []).filter(s => s.t < s.dur);
   for (const q of FX.texts) q.t += dt;
   FX.texts = FX.texts.filter(q => q.t < q.life);
+  for (const q of NUMS) { q.t += dt; q.x += q.vx * dt; }
+  NUMS.splice(0, NUMS.length, ...NUMS.filter(q => q.t < q.life));
   if (FX.lines && (FX.lines.t += dt) > FX.lines.life) FX.lines = null;
   FX.trails = FX.trails.filter(tr => tr.open || (tr.pts.length && now - tr.pts[tr.pts.length - 1].at < tr.life + 0.02));
   for (const s of FX.sprites) { s.t += dt; if (s.follow) { const p = s.follow(); s.x = p[0]; s.y = p[1]; } }
@@ -561,6 +640,7 @@ export function drawSprites(ctx, front) {
   }
   if (!front) return;
   drawTexts(ctx);
+  drawNums(ctx);
   for (const p of FX.parts) {
     const u = p.t / p.life;
     ctx.save();

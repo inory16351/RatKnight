@@ -1,0 +1,13 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: sheet.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. Do NOT edit or post-process the image with code. After saving, reply only with the file name.
+
+Attached: ref_style.png = the HERO of our 2D action game (a tiny chibi mouse knight). Use it ONLY as the STYLE reference: the same completely FLAT style (one solid color per area, NO shading, NO highlight, NO gradient, NO outlines), the same cute rounded shapes and the same scale feel. Do NOT draw the mouse. The game is set in a modern human city at night seen at mouse scale, pop-art comic mood.
+
+Draw an ENEMY animation sheet: a SUBWAY COCKROACH that clings to the ceiling, drops onto the hero and then skitters fast along the floor. Design: long flat oval reddish-brown body with two wing covers, small head with two big white cartoon eyes with tiny pupils and angry brows, six thin spiky legs, two VERY long whip antennae, a tiny bottle-cap helmet on its head. Sneaky and fast-looking. About as long as the mouse hero (much wider than tall). Side view, facing RIGHT in every frame.
+- 1536x1024, solid flat MAGENTA background (#FF00FF), no text, no labels, no grid lines, no ground, no shadows, no speed lines, no effects. 3 columns x 2 rows, each frame alone in its own cell with WIDE magenta gaps; nothing touches another cell or the image edge. All frames at the SAME SCALE.
+Frames (left to right, top to bottom):
+ 1) RUN A: skittering low on the floor, legs in one step position.
+ 2) RUN B: skittering, legs in the other step position.
+ 3) CEILING: UPSIDE DOWN clinging to a ceiling (back toward the bottom, legs pointing UP), antennae twitching, eyes looking down.
+ 4) DROP: falling and pouncing, legs spread wide open, mouth open, belly toward the viewer at an angle.
+ 5) HURT: flinching back, eyes squeezed shut, legs splayed.
+ 6) DEAD: flipped over on its back, legs curled up, eyes as X marks.
