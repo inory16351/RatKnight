@@ -66,8 +66,8 @@ function normals(src) {
 }
 
 // 빛 각도(부위 기준, 라디안)마다 명암을 얹은 캔버스
-function bakeOne(n, ang) {
-  const S = SHADE, { w, h, base, a, N } = n;
+function bakeOne(n, ang, opt) {
+  const S = opt ? { ...SHADE, ...opt } : SHADE, { w, h, base, a, N } = n;
   const lz = S.lightZ, lx = Math.cos(ang) * Math.sqrt(1 - lz * lz), ly = Math.sin(ang) * Math.sqrt(1 - lz * lz);
   const out = new ImageData(new Uint8ClampedArray(base.data), w, h), d = out.data;
   for (let i = 0; i < w * h; i++) {
@@ -98,10 +98,11 @@ function bakeOne(n, ang) {
   return c;
 }
 
-export function bakePart(img) {
+// opt = SHADE 값 덮어쓰기 (보스는 { halftone: false }: 망점이 도트 4px 격자와 어긋나 얼룩이 되므로 2톤 셀만)
+export function bakePart(img, opt) {
   const n = img.__n || (img.__n = normals(img));
   const v = [];
-  for (let k = 0; k < ANGLES; k++) v.push(bakeOne(n, (k / ANGLES) * Math.PI * 2));
+  for (let k = 0; k < ANGLES; k++) v.push(bakeOne(n, (k / ANGLES) * Math.PI * 2, opt));
   return v;
 }
 
@@ -117,13 +118,38 @@ export function variantFor(ctx, worldAng) {
 }
 
 // 거의 돌지 않는 큰 부위(보스 등): 빛 각도 하나로만 명암을 구움
-export function bakeLit(img, ang) {
+export function bakeLit(img, ang, opt) {
   const n = img.__n || (img.__n = normals(img));
-  return bakeOne(n, ang);
+  return bakeOne(n, ang, opt);
+}
+
+// 픽셀 외곽선: 실루엣 바로 바깥 칸(4방향 이웃)을 짙은 색으로 채움 (px 칸 두께). col 이 없으면 닿은 칸 색을 아주 어둡게(남보라 쪽) — 배경 그림의 짙은 테두리와 맞춤
+export function outline(c, px = 1, col = null) {
+  const w = c.width, h = c.height, x = c.getContext('2d', { willReadFrequently: true });
+  const d = x.getImageData(0, 0, w, h), p = d.data;
+  for (let k = 0; k < px; k++) {
+    const a = new Uint8Array(w * h); for (let i = 0; i < w * h; i++) a[i] = p[i * 4 + 3] > 127;
+    for (let y = 0; y < h; y++) for (let X = 0; X < w; X++) {
+      const i = y * w + X; if (a[i]) continue;
+      const j = X > 0 && a[i - 1] ? i - 1 : X < w - 1 && a[i + 1] ? i + 1 : y > 0 && a[i - w] ? i - w : y < h - 1 && a[i + w] ? i + w : -1;
+      if (j < 0) continue;
+      const o = col || [p[j * 4] * 0.2 + 14, p[j * 4 + 1] * 0.16 + 10, p[j * 4 + 2] * 0.2 + 26];
+      p[i * 4] = o[0]; p[i * 4 + 1] = o[1]; p[i * 4 + 2] = o[2]; p[i * 4 + 3] = 255;
+    }
+  }
+  x.putImageData(d, 0, 0);
+  return c;
+}
+// 테두리 자리(pad 칸)를 늘린 새 캔버스에 옮기고 둘레를 짙게 — 명암을 구운 뒤에 둘러야 하이라이트가 테두리를 밝히지 않음
+export function ringed(c, pad) {
+  const o = document.createElement('canvas'); o.width = c.width + pad * 2; o.height = c.height + pad * 2;
+  o.getContext('2d').drawImage(c, pad, pad);
+  return outline(o, pad);
 }
 
 // 플랫하게 뽑은 그림을 코드로 픽셀화: cell 배 작게 줄여(평균색) 색을 step 단위로 끊고, 그릴 때 최근접으로 키움. 불러올 때 한 번만 굽는다
-export function pixelate(im, cell, step = 24) {
+// line = 외곽선 색([r,g,b], 없으면 안 그림) — 땅 위 소품처럼 배경에서 떨어져 보여야 하는 것에 1도트 테두리
+export function pixelate(im, cell, step = 24, line = null) {
   if (!im) return null;
   const w = Math.max(1, Math.round(im.width / cell)), h = Math.max(1, Math.round(im.height / cell));
   const c = document.createElement('canvas'); c.width = w; c.height = h;
@@ -136,5 +162,5 @@ export function pixelate(im, cell, step = 24) {
     for (let k = 0; k < 3; k++) p[i + k] = Math.round(p[i + k] / step) * step;
   }
   x.putImageData(d, 0, 0);
-  return c;
+  return line ? outline(c, 1, line) : c;
 }

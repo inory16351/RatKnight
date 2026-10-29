@@ -1,0 +1,14 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: full_b.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. Do NOT edit or post-process the image with code. After saving, reply only with the file name.
+
+Attached: ref_char.png = the hero of our cute 2D action game (a tiny chibi mouse knight). Use it ONLY as the style reference: the same completely FLAT style (one solid color per area, NO gradients, NO shading, NO texture, NO outlines), bold simple shapes, bold pop-art palette. Do NOT draw the mouse.
+
+Draw the BOSS: "the Toad King of the Sewer" — a HUGE, heavy, MENACING toad boss (about 6 times taller than the mouse hero). Side view facing LEFT, low ready crouch, very clear readable silhouette.
+Design:
+- Big wide flat head (about 45% of the body), an enormous wide mouth line running from the snout far back under the eye, heavy jowls, a mean scowl: two big bulging eyes with glowing YELLOW-ORANGE irises and slit pupils, thick angry brow ridges pressing down.
+- Body color CONTRASTING a green sewer background: deep PURPLE / dark violet-blue skin (poison toad), with bright ORANGE and YELLOW warts/spots on the back and head, a pale lilac-cream belly and throat.
+- Thick muscular front arms planted on the ground with big webbed hands; huge folded back legs with heavy webbed feet.
+- A small bent golden BOTTLE-CAP CROWN tilted on the head, and a ragged red-and-white torn candy-wrapper CAPE tied at the neck hanging down its back.
+- Mean, heavy, threatening — a real boss — but still in our cute flat pop-art game style.
+- Clear separated shapes: the front arm, hand, back thigh and back foot must read as distinct shapes against the body (they will later be cut into rig parts).
+- 1536x1536, solid flat MAGENTA background (#FF00FF), the toad alone and centered, filling about 80% of the image, nothing touching the edges. No ground, no shadow, no text, no effects.
+Variation note: make this version a bit chunkier and wider, mouth slightly open showing a dark mouth line, crown more tilted.

@@ -6,22 +6,28 @@
 //  · 빈틈: 언제든 때릴 수 있고, 혀가 박혔을 때·착지 직후엔 피해 2배, 박힌 혀를 베면 휘청
 // 몸은 컷아웃 리그(부위 그림 + 관절). 그림이 오기 전엔 같은 관절 구조를 임시 도형으로 그림.
 import { rect, body, area, line, grow, touches, GRACE } from './hitbox.js';
-import { SHADE, bakeLit } from './shade.js';
+import { SHADE, bakeLit, ringed } from './shade.js';
 const LIGHT_ANG = Math.atan2(-0.85, -0.5);   // rig.js LIGHT 와 같은 빛 (화면 기준, 왼쪽 위)
+export const BOSS_SHADE = { halftone: false, soft: 0.02, shadowA: 0.42 };   // 보스 명암: 망점 없이 또렷한 2톤 셀 (레일 지네도 씀)
 const HP = 260, TONGUE_MAX = 560, G2 = 1600;
 // ---------- 컷아웃 리그 (art/boss/toad/cut, Codex 부위 시트) ----------
 // 좌표 = 리그 공간(그림 px, 원점 = 발밑 가운데, 왼쪽을 봄) × K. at = 부모 공간에서 관절 자리, piv = 부위 그림 속 관절 자리
-const K = 0.43;
+// v2 (2026-10-29, 보라 독두꺼비 시안 A): 부위 시트를 통 그림(art/boss/toad/v2/full.png, 시트의 1.21배)에 겹쳐 보며 조립한 자리.
+// img = 다른 부위 그림을 빌려 씀 · rot = 기본 각도 · s = 기본 크기 · dim = 어둡게(먼 쪽 다리)
+const K = 0.4;   // 게임 키 약 300px (v1 보다 큼 — 얼굴·눈이 도트 4px 판에서 읽히게)
 const RIG = {
-  body: { at: [-394, -506], piv: [0, 0] },               // 몸통+머리(윗턱): 배 밑이 바닥 20px 위
-  foot: { at: [279, -145], piv: [219, 54] },             // 뒷발: 발꿈치 관절, 발가락은 앞(왼쪽)으로
-  thigh: { at: [506, -66], piv: [386, 225] },            // 뒷다리: 엉덩이 아래 혹을 축으로 접힘
-  jaw: { at: [-112, -266], piv: [300, 42] },             // 아래턱+목주머니: 입꼬리를 축으로 벌어짐
-  throatBig: { at: [-150, -205], piv: [168, 40] },       // 부푼 목주머니 (물방울 뱉기 전)
-  arm: { at: [-94, -276], piv: [195, 62] },              // 앞팔: 어깨
-  hand: { at: [-229, -141], piv: [188, 43] },            // 앞손: 손목
-  lidA: { at: [-322, -370] }, lidB: { at: [-197, -375] },   // 눈꺼풀 (눈 가운데)
-  mouth: [-377, -295],                                   // 혀가 나오는 입끝
+  arm2: { img: 'arm', at: [-208, -274], piv: [188, 50], rot: 10, dim: true },   // 먼 쪽 앞팔 (시트엔 한 쌍뿐이라 같은 그림을 어둡게)
+  hand2: { img: 'hand', at: [-276, -160], piv: [216, 24], dim: true },
+  foot: { at: [394, -153], piv: [249, 39] },             // 뒷발: 발꿈치 관절, 발가락은 앞(왼쪽)으로
+  belly: { img: 'throatBig', at: [-68, -248], s: 1.25 },   // 다리 사이로 보이는 아랫배 (몸통 그림의 배 밑이 통 그림보다 높아 메움)
+  body: { at: [-459, -754], piv: [0, 0] },               // 몸통+머리(윗턱)+왕관+망토
+  thigh: { at: [428, -140], piv: [308, 209] },           // 뒷다리: 엉덩이 아래 혹을 축으로 접힘
+  jaw: { at: [-102, -501], piv: [348, 30] },             // 아래턱+목주머니: 입꼬리를 축으로 벌어짐
+  throatBig: { at: [-260, -390], piv: [154, 28] },       // 부푼 목주머니 (물방울 뱉기 전)
+  arm: { at: [68, -290], piv: [188, 50] },               // 앞팔: 어깨
+  hand: { at: [-20, -184], piv: [216, 24] },             // 앞손: 손목
+  lidA: { at: [-235, -578], s: 0.65 }, lidB: { at: [-410, -578], s: 0.5 },   // 눈꺼풀 (눈 가운데)
+  mouth: [-446, -506],                                   // 혀가 나오는 입끝
 };
 export const TOAD = {
   rig: null,
@@ -33,7 +39,11 @@ export const TOAD = {
       const raw = await loadImg(`../art/boss/toad/cut/${n}.png`); if (!raw) continue;
       const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(raw.width * f)); c.height = Math.max(1, Math.round(raw.height * f));
       const x = c.getContext('2d', { willReadFrequently: true }); x.imageSmoothingQuality = 'high'; x.drawImage(raw, 0, 0, c.width, c.height);
-      im[n] = { W: raw.width, H: raw.height, flat: c, L: bakeLit(c, LIGHT_ANG), R: bakeLit(c, Math.PI - LIGHT_ANG) };
+      // 명암을 구운 뒤 부위마다 짙은 테두리(3텍셀 ≈ 도트 1칸)를 둘러 겹친 부위(팔·턱·다리)가 도트판에서 한 덩어리로 뭉개지지 않게.
+      // 원본 그림엔 외곽선이 없어 배경(짙은 테두리)과 따로 놀았음. 망점은 4px 격자와 어긋나 얼룩이 되니 보스는 2톤 셀만
+      const pad = 3, s = raw.width / c.width;   // 그릴 때 크기(W·H)도 테두리만큼 키워 부위 자리가 그대로이게
+      im[n] = { W: (c.width + pad * 2) * s, H: (c.height + pad * 2) * s, pad: pad * s, flat: ringed(c, pad),
+        L: ringed(bakeLit(c, LIGHT_ANG, BOSS_SHADE), pad), R: ringed(bakeLit(c, Math.PI - LIGHT_ANG, BOSS_SHADE), pad) };
     }
     if (im.body) TOAD.rig = im;
   },
@@ -41,18 +51,21 @@ export const TOAD = {
   draw(c, p, B) {   // c 는 이미 (발밑, 보는 쪽, 몸 쏠림·눌림) 변환됨
     const I = TOAD.rig, R = Math.PI / 180;
     const side = B.dir < 0 ? 'L' : 'R', pick = im => SHADE.on ? im[side] : im.flat;   // 리그는 왼쪽을 보는 그림 → 오른쪽을 볼 땐 뒤집혀 그려지니 빛도 뒤집어 구운 쪽
-    const put = (n, ang = 0, s = 1) => { const r = RIG[n], im = I[n]; if (!im) return; c.save(); c.translate(r.at[0], r.at[1]); c.rotate(ang * R); c.scale(s, s); c.drawImage(pick(im), -(r.piv?.[0] ?? im.W / 2), -(r.piv?.[1] ?? im.H / 2), im.W, im.H); c.restore(); };
+    const put = (n, ang = 0, s = 1) => { const r = RIG[n], im = I[r.img || n]; if (!im) return; c.save(); c.translate(r.at[0], r.at[1]); c.rotate((ang + (r.rot || 0)) * R); c.scale(s * (r.s || 1), s * (r.s || 1)); if (r.dim) c.filter = (c.filter === 'none' ? '' : c.filter + ' ') + 'brightness(0.62)'; c.drawImage(pick(im), -(r.piv ? r.piv[0] + im.pad : im.W / 2), -(r.piv ? r.piv[1] + im.pad : im.H / 2), im.W, im.H); c.restore(); };
     c.save(); c.scale(K, K);
     if (B.flash > 0.3) c.filter = 'brightness(0) invert(1)';   // 맞은 순간 하얗게
     else if (B.tint > 0.05) c.filter = `sepia(${0.5 * B.tint}) saturate(${1 + 1.2 * B.tint}) hue-rotate(${-28 * B.tint}deg)`;   // 2페이즈: 붉게 달아오름
+    put('arm2', p.arm * 0.6); put('hand2', p.arm * 0.4);
     put('foot', p.thigh * 0.5);
+    put('belly');
     put('body');
     put('thigh', p.thigh);
     if (p.throat > 0.05) put('throatBig', 0, 0.35 + 0.75 * p.throat);
     if (p.jaw > 4) {   // 입속: 윗입술 선 아래로 벌어진 만큼 짙은 입 안 (몸통 그림엔 턱 밑이 그려져 있어 아래턱만 돌리면 벌린 티가 안 남)
       const [hx, hy] = RIG.jaw.at, open = Math.sin(p.jaw * R) * 300;
       c.fillStyle = B.flash > 0.3 ? '#fff' : '#5a1f2c';
-      c.beginPath(); c.moveTo(-392, -296); c.quadraticCurveTo(-260, -282, hx, hy); c.lineTo(-392, -296 + open); c.closePath(); c.fill();
+      const [mx, my] = RIG.mouth;
+      c.beginPath(); c.moveTo(mx, my); c.quadraticCurveTo((mx + hx) / 2, (my + hy) / 2 + 12, hx, hy); c.lineTo(mx, my + open); c.closePath(); c.fill();
     }
     put('jaw', -p.jaw);
     put('arm', p.arm); put('hand', p.arm * 0.6);
@@ -177,7 +190,7 @@ export function makeToad(api, x) {
           api.shake(14); api.impact(); api.fx.dust(B.x, B.y, -1, 2.4); api.fx.dust(B.x, B.y, 1, 2.4);
           api.fx.sfx('쿠웅!!', B.x, B.y - 260, B.dir, true);
           B.waves.push({ x: B.x - 120, d: -1, t: 0 }, { x: B.x + 120, d: 1, t: 0 });
-          attack(body(B.x, B.y, 130, 160));   // 착지 순간 짓누르기 콜라이더
+          attack(body(B.x, B.y, 150, 180));   // 착지 순간 짓누르기 콜라이더
         }
         break;
       case 'land':   // 착지 직후 빈틈 (피해 2배)
@@ -224,7 +237,7 @@ export function makeToad(api, x) {
 
   B.hurtBoxes = () => {
     if (['dead', 'intro', 'roar', 'jumpUp', 'jumpHang'].includes(B.state)) return [];
-    const boxes = [grow(body(B.x, B.y - B.pose.lift, 175 * B.pose.sx, 220 * B.pose.sy), GRACE.hurt)];
+    const boxes = [grow(body(B.x, B.y - B.pose.lift, 180 * B.pose.sx, 265 * B.pose.sy), GRACE.hurt)];
     if (B.tongue.len > 60) { const [mx, my] = mouth(), [tx, ty] = tip(); boxes.push(line(mx, my, tx, ty, 30 + GRACE.hurt * 2)); }
     return boxes;
   };
@@ -242,7 +255,6 @@ export function makeToad(api, x) {
     const [hx, hy] = onTongue ? tip() : [B.x + (P.x < B.x ? 90 : -90), by - 110];   // 몸 반대쪽(벤 칼이 빠져나간 쪽)에서 터짐
     api.fx.damage(dmg, hx, hy - 120, B.vuln ? 'crit' : c.fin ? 'fin' : 'boss');
     api.fx.hitBurst(hx, hy, P.facing, B.vuln || c.fin, c.hitUp ?? 0);
-    if (c.sfx) api.fx.sfx(c.sfx, hx, hy - 90, P.facing, B.vuln);
     api.hitstop(Math.max(c.stop || 0.05, B.vuln ? 0.1 : 0)); api.shake(B.vuln ? 8 : 4); api.impact();
     if (onTongue && B.state === 'tongueStuck') go('stagger');
     if (B.hp <= 0) { B.hp = 0; go('dead'); B.tongue.len = 0; B.drops = []; B.waves = []; B.puddles = []; B.cols = []; api.onDefeat(B); }

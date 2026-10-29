@@ -1,0 +1,15 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: sheet.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. Do NOT edit, clean or post-process the image with code or scripts: save the generated image as-is.
+
+Attached: ref_char.png = the HERO of our 2D action game, a tiny chibi mouse knight. Draw EXACTLY this same character in every frame (same design, colors, proportions and size): big round pink-lined ears, grey-brown fur, bottle-cap shoulder pad and grey chest plate, torn dark-navy cape, teal-and-cream sash, bandaged wrists and boots, long pink tail. He has NO SWORD in any frame (his sword flies away separately in the game): empty open hands.
+Style: completely FLAT, one solid color per area, NO shading, NO highlight, NO gradient, NO outlines, NO texture (shading and pixelation are added later by code). Cute pop-art comic mood.
+
+Image spec:
+- 1536x1024, solid flat MAGENTA background (#FF00FF) everywhere behind the drawings: no floor, no ground line, no shadow, no glow, no text, no numbers, no grid lines, no frames, no motion lines, no effects, no stars.
+- An exact grid of 2 columns x 2 rows (each cell 768x512). One drawing per cell, with a clear magenta margin; drawings must NOT touch or cross cell borders. In every cell the character rests on the SAME invisible ground line about 40 px above the bottom of the cell. All four frames at the SAME SCALE as each other.
+- A 4-frame DEATH ANIMATION in the style of Metal Slug deaths: exaggerated, punchy, readable key poses with a soft, floppy body (never stiff like a plank). PURE SIDE VIEW, his face toward the RIGHT in every frame. The hit comes from the right, so he collapses BACKWARD (toward the LEFT) and ends lying on his BACK.
+
+Frames, left to right, top to bottom:
+1. HIT: struck from the front: head snapped back, eyes squeezed shut, mouth open in a yelp, ears and cape flung forward, arms flung up and forward with open hands, back arched, both feet still on the ground.
+2. STAGGER: knees buckling, hips dropping and sliding back to the left, upper body tipping backward, arms flailing loosely, one foot lifting, tail curling.
+3. FALL: landing on his bottom and back on the ground with a bump: back hitting the ground, head whipping back, legs flung up in the air, arms thrown out to the sides, cape and ears bouncing.
+4. DEAD: knocked out, lying limp flat on his BACK on the ground, head on the LEFT and feet on the RIGHT, arms spread out loosely, legs relaxed and slightly bent, ears and tail flopped flat on the ground, eyes as two simple spiral swirls, tongue slightly out.

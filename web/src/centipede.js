@@ -7,7 +7,8 @@
 // 몸은 사슬 리그: 머리가 지나간 길(trail)을 마디가 일정 간격으로 따라감. 마디마다 다리 두 쌍이 걸음에 맞춰 흔들림.
 // 부위 그림(art/boss/centipede/cut)이 있으면 코드 셰이더로 구워 쓰고, 없으면 같은 관절 구조를 임시 도형으로 그림.
 import { rect, area, line, touches, GRACE } from './hitbox.js';
-import { SHADE, bakePart, variantFor } from './shade.js';
+import { SHADE, bakePart, variantFor, ringed } from './shade.js';
+import { BOSS_SHADE } from './boss.js';
 const HP = 320, N = 12, SP = 46, SEG_R = 30, HEAD_R = 44, G2 = 1800;
 const LIGHT_ANG = Math.atan2(-0.85, -0.5);
 const SIZE = { head: 124, headOpen: 124, seg: 80, segWeak: 80, tail: 100, mandible: 74, antenna: 110, leg: 30 };   // 부위를 게임 px 너비로 맞춤
@@ -21,7 +22,10 @@ export const CENTI = {
       const k = SIZE[n] / raw.width * 0.5;   // 도트 4px 판에 그리니 2배 해상도면 충분
       const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(raw.width * k)); c.height = Math.max(1, Math.round(raw.height * k));
       const x = c.getContext('2d', { willReadFrequently: true }); x.imageSmoothingQuality = 'high'; x.drawImage(raw, 0, 0, c.width, c.height);
-      im[n] = { c, lit: bakePart(c), w: SIZE[n], h: SIZE[n] * raw.height / raw.width };
+      // 개굴대왕과 같게: 부위마다 짙은 테두리(약 도트 1칸) + 망점 없는 2톤 셀 (마디·다리가 겹쳐도 도트판에서 한 덩어리로 안 뭉개짐)
+      const pad = 3, ow = c.width + pad * 2, oh = c.height + pad * 2;
+      const pv = PIV[n] || [0.5, 0.5], s = SIZE[n] / c.width;   // 관절 자리도 테두리만큼 옮김
+      im[n] = { c: ringed(c, pad), lit: bakePart(c, BOSS_SHADE).map(v => ringed(v, pad)), w: ow * s, h: oh * s, pv: [(pv[0] * c.width + pad) / ow, (pv[1] * c.height + pad) / oh] };
     }
     if (im.head && im.seg) CENTI.rig = im;
   },
@@ -255,7 +259,6 @@ export function makeCentipede(api, x) {
     api.fx.hitBurst(hb.x, hb.y, P.facing, k >= 1.5 || c.fin, c.hitUp ?? 0);
     api.fx.damage(dmg, hb.x, hb.y - 130, kind);
     if (bestK < 1 && !B.vuln) api.fx.sfx('팅!', hb.x, hb.y - 90, P.facing);   // 단단한 마디: 튕겨 나옴
-    else if (c.sfx) api.fx.sfx(c.sfx, hb.x, hb.y - 100, P.facing, k >= 1.5);
     api.hitstop(Math.max(c.stop || 0.05, k >= 1.5 ? 0.1 : 0)); api.shake(k >= 1.5 ? 8 : 4); api.impact();
     if (B.hp <= 0) { B.hp = 0; go('dead'); B.waves = []; B.rocks = []; B.cols = []; api.onDefeat(B); }
     else if (B.phase === 1 && B.hp <= B.max / 2 && !['burrow', 'warn', 'charge', 'climb', 'hang', 'drop', 'pull'].includes(B.state)) {
@@ -304,7 +307,7 @@ export function makeCentipede(api, x) {
       const im = I[n]; if (!im) return;
       c.save(); frame(c, p, a); c.translate(off[0], off[1]);
       c.rotate(ang); if (flipX) c.scale(-1, 1); c.scale(sc, sc);
-      const pv = PIV[n] || [0.5, 0.5], src = SHADE.on ? im.lit[variantFor(c, LIGHT_ANG)] : im.c;
+      const pv = im.pv, src = SHADE.on ? im.lit[variantFor(c, LIGHT_ANG)] : im.c;
       c.drawImage(src, -im.w * pv[0], -im.h * pv[1], im.w, im.h);
       c.restore();
     };

@@ -1,5 +1,5 @@
 // 기사쥐 액션 모션 프로토: 단색 테스트장 + 허수아비. 모션·타격감 확정용.
-import { loadRig, drawRig, bladeAt, rebake, LIGHT, tipOf, drawFront, frontHand, frontGripAt, lerpPose } from './rig.js';
+import { loadRig, drawRig, bladeAt, rebake, LIGHT, tipOf, drawFront, frontHand, frontGripAt, lerpPose, SS } from './rig.js';
 import { SHADE, bakePart, variantFor, pixelate } from './shade.js';
 import * as A from './anim.js';
 import * as F from './fx.js';
@@ -224,7 +224,7 @@ function spawnFoe(s) {
   return { type: s.type, x: s.x, y, x0: s.x, y0: y, ceilY: s.ceil, hp: d.hp, hh: d.hh, hw: d.hw, dir: -1, state, t: 0, cd: 0.5, vx: 0, vy: 0, flash: 0, ph: Math.random() * 6, alt: 0 };
 }
 function updateRoach(e, dt, dx, ad, see) {
-  const fall = () => { e.state = 'drop'; e.t = 0; e.vy = 0; e.vx = Math.sign(dx) * 60; F.sfx('스륵', e.x, e.y - 40, 1); };
+  const fall = () => { e.state = 'drop'; e.t = 0; e.vy = 0; e.vx = Math.sign(dx) * 60; };
   if (e.state === 'ceil') { e.dir = Math.sign(dx) || e.dir; if (see && ad < 120 && P.y > e.y) fall(); }
   else if (e.state === 'drop' || e.state === 'hop') {
     e.vy += GRAV * dt; e.x += e.vx * dt; e.y += e.vy * dt;
@@ -254,7 +254,6 @@ function updatePigeon(e, dt, dx, ad, see) {
       e.threw = true;
       const a = Math.atan2(P.y - 40 - e.y + e.hh, P.x - e.x);
       for (const off of [-0.24, 0, 0.24]) SHOTS.push({ x: e.x + e.dir * 20, y: e.y - e.hh, vx: Math.cos(a + off) * 430, vy: Math.sin(a + off) * 430, t: 0 });
-      F.sfx('파닥!', e.x, e.y - 90, e.dir);
     }
     if (e.t > 0.95) { e.state = 'hover'; e.t = 0; e.cd = 1.3; e.threw = false; }
   } else if (e.state === 'wind') {   // 솟구치며 겨눔
@@ -340,13 +339,13 @@ function hitFoe(e, c) {
   F.damage(dmg, e.x + P.facing * 24, e.y - 2 * e.hh - 100, fin ? 'fin' : 'normal');   // 효과음 글자 위
   hitstop = Math.max(hitstop, c.stop || 0.05); shake = Math.max(shake, c.shake || 3); impactT = fin ? 0.05 : 0.03;
   F.hitBurst(e.x + P.facing * 18, e.y - e.hh, P.facing, fin || c.big, c.hitUp ?? 0);   // 적 반대쪽에서 터짐
-  if (c.sfx) F.sfx(c.sfx, e.x + P.facing * 16, e.y - 2 * e.hh - 50, P.facing, fin);
   const kb = (c.kb || 120) * ({ flyer: 1.2, pigeon: 1.1, roach: 1.3 }[e.type] || 1);
+  const kd = c.plunge ? Math.sign(e.x - P.x) || P.facing : P.facing;   // 내려찍기 = 내 양옆으로 밀어냄
   if (e.hp <= 0) {
-    e.state = 'dead'; e.t = 0; e.vx = P.facing * kb * 1.3; e.vy = -420;
+    e.state = 'dead'; e.t = 0; e.vx = kd * kb * 1.3; e.vy = -420;
     dropCheese(e.x, e.y - e.hh, FOE[e.type].xp);
     if (fin) { slowT = 0.22; zoomTgt = 1.1; }
-  } else { e.state = 'hurt'; e.t = 0; e.vx = P.facing * kb; e.vy = e.type === 'flyer' || e.type === 'pigeon' ? -80 : 0; }
+  } else { e.state = 'hurt'; e.t = 0; e.vx = kd * kb; e.vy = c.plunge ? -220 : e.type === 'flyer' || e.type === 'pigeon' ? -80 : 0; }
 }
 // 치즈 = 경험치. 튀어 나와 떨어졌다가 잠시 뒤 플레이어에게 빨려 옴
 function dropCheese(x, y, xp) {
@@ -496,7 +495,8 @@ function update(dt) {
   if (pressed.compare) toggle('compare');
   if (pressed.hurt && P.state !== 'dead') { P.state = 'hurt'; P.t = 0; P.vx = -P.facing * 260; P.flash = 1; shake = 6; hitstop = 0.06; }
   if (pressed.die) { P.state = P.state === 'dead' ? 'move' : 'dead'; P.t = 0; P.vx = 0; }
-  P.jumpBuf -= dt; P.atkBuf -= dt;
+  if (keys.down) P.downBuf = 0.15;   // ↓ 를 공격과 정확히 같이 안 눌러도 내려찍기가 나가게 (살짝 먼저 뗀 경우)
+  P.jumpBuf -= dt; P.atkBuf -= dt; P.downBuf = (P.downBuf || 0) - dt;
   const dir = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
 
   // F 누름 길이: 짧게 떼면 대시, F_TAP 넘게 누르고 있으면(땅) 충전 시작, 떼는 순간 충전만큼 돌진
@@ -530,7 +530,7 @@ function update(dt) {
       const s = ws || P.wallS;
       P.vy = -JUMP_V * 0.96; P.vx = -s * 420; P.facing = -s; P.wallLock = 0.16; P.jumpBuf = 0; P.wallT = 0;
       P.airDash = true; P.airAtk = true; P.djAvail = true;
-      F.dust(P.x + s * PW, P.y - 20, -s, 1); F.sfx('탁!', P.x + s * 20, P.y - 90, -s); shake = Math.max(shake, 2);
+      F.dust(P.x + s * PW, P.y - 20, -s, 1); shake = Math.max(shake, 2);
     }
     else if (P.jumpBuf > 0 && !P.ground && P.hasDJ && P.djAvail) {   // 이단 점프 (아이템 획득 후): 공중에서 한 번 더, 앞으로 한 바퀴 돌며
       P.vy = -JUMP_V * 0.92; P.djAvail = false; P.djT = 0; P.jumpBuf = 0;
@@ -539,7 +539,7 @@ function update(dt) {
     if (!keys.jump && P.vy < -200) P.vy += GRAV * 1.6 * dt;   // 짧게 누르면 낮게
     if (P.atkBuf > 0) {
       P.atkBuf = 0;
-      if (!P.ground) { if (keys.down && has('plunge')) startAttack('plunge'); else if (P.airAtk) { P.airAtk = false; startAttack('air'); } }   // 공중: ↓ + 공격 = 내려찍기, 그냥 = 세로 회전 베기
+      if (!P.ground) { if (P.downBuf > 0 && has('plunge')) startAttack('plunge'); else if (P.airAtk) { P.airAtk = false; startAttack('air'); } }   // 공중: ↓ + 공격 = 내려찍기, 그냥 = 세로 회전 베기
       else { P.combo = 0; startAttack(A.COMBO[0]); }
     }
     if (pressed.dash && (P.ground || P.airDash)) startDash();
@@ -562,15 +562,12 @@ function update(dt) {
     // 섬광 돌진(flash): 젖히기가 끝나 튀어 나가는 순간 화면·몸이 번쩍하고 흔들림
     if (c.flash && !P.flashed && P.t >= c.wind) { P.flashed = true; flashScreen = 0.8; P.flash = 1; shake = Math.max(shake, 6); F.dust(P.x, P.y, -P.facing, 1.6); }
     // 내딛기: 휘두르는 동안 앞으로 미끄러짐
-    if (c.plunge) {   // 내려찍기: 젖히는 동안 살짝 떠 칼을 듦 → 급강하(착지할 때까지 꽂은 자세 유지) · 공중에서 적에 꽂히면 튕겨 오름
+    if (c.plunge) {   // 내려찍기: 젖히는 동안 살짝 떠 칼을 듦 → 급강하(착지할 때까지 꽂은 자세 유지) · 아래 적은 베어 옆으로 밀어내고 멈추지 않고 땅까지 (사용자 지시 2026-10-29: 튕겨 오름 없앰)
       if (P.t < c.wind) { P.vy = Math.min(P.vy, -60); P.vx *= Math.pow(0.02, dt); }
       else if (!P.ground) {
         P.vy = 1000; P.vx = 0; if (P.t > c.wind + c.act) P.t = c.wind + c.act;
         P.ghosts.push({ pose: P.pose, x: P.x, y: P.y, f: P.facing, t: 0 });
-        if (tryHit(true)) {   // 공격 콜라이더가 실제 몸 피격 콜라이더에 닿은 경우에만 튕김
-            P.state = 'move'; P.vy = -JUMP_V * 0.95; P.airAtk = true; P.airDash = true; P.djAvail = true;
-            F.dust(P.x, P.y, -1, 1); F.dust(P.x, P.y, 1, 1);
-        }
+        tryHit(true);
       }
     } else if (P.ground) {
       const inAct = P.t >= c.wind * 0.6 && P.t < c.wind + c.act * 1.2;
@@ -587,7 +584,7 @@ function update(dt) {
       const i = A.COMBO.indexOf(P.atkName);
       if (i >= 0) { P.atkBuf = 0; P.combo = (i + 1) % A.COMBO.length; startAttack(A.COMBO[P.combo]); }   // 3타 뒤엔 다시 1타 (뒤에 남은 칼을 앞으로 베어 넘김)
     }
-    if (!P.ground && P.atkBuf > 0 && keys.down && has('plunge') && P.atkName === 'air' && P.t > c.wind + c.act) { P.atkBuf = 0; startAttack('plunge'); }   // 공중 회전 끝에서 바로 내려찍기
+    if (!P.ground && P.atkName === 'air' && has('plunge') && P.downBuf > 0 && (P.atkBuf > 0 || P.t < 0.1)) { P.atkBuf = 0; startAttack('plunge'); }   // 공중 회전 중 언제든 ↓ + 공격 = 내려찍기 · 공격을 먼저 누르고 ↓ 를 0.1초 안에 눌러도 내려찍기로 바뀜
     else if (pressed.dash && P.t > c.wind + c.act && (P.ground || P.airDash)) startDash();
     else if (c.next && P.t >= tot) startAttack(c.next, chargeMod(c.next, P.chargeK || 0));   // 강공격 ① → ② 돌진 마무리로 바로 이어짐 (충전만큼 키움)
     else if (P.t >= tot) { P.state = 'move'; F.streakEnd(P.trail); P.trail = null; if (c.endFlip) P.facing = -P.facing; }   // 뒤로 돈 채 끝나는 공격(2타): 그 쪽을 보고 대기
@@ -600,6 +597,11 @@ function update(dt) {
     if (P.t >= A.HURT_T) P.state = 'move';
   } else if (P.state === 'dead') {
     P.vx *= Math.pow(0.001, dt);
+    const t1 = DEATH.times[2], t2 = DEATH.times[3];
+    if (DEATH.F.length && P.t >= t1 && P.t - dt < t1) { shake = Math.max(shake, 4); F.dust(P.x - P.facing * 20, P.y, -P.facing, 1); }   // 엉덩방아
+    if (DEATH.F.length && P.t >= t2 && P.t - dt < t2) { shake = Math.max(shake, 5); F.dust(P.x - P.facing * 55, P.y, -P.facing, 1.2); F.dust(P.x - P.facing * 25, P.y, P.facing, 0.8); }   // 등이 바닥에 닿음
+    const ts = DEATH.SWORD.t0 + DEATH.SWORD.T;
+    if (DEATH.F.length && P.t >= ts && P.t - dt < ts) { const s = deathSword(ts); shake = Math.max(shake, 3); F.dust(s.g[0], P.y, -1, 0.6); F.dust(s.g[0], P.y, 1, 0.6); }   // 칼이 땅에 박히는 순간
   }
 
   // 물리
@@ -831,7 +833,7 @@ function drawView(c, v, x, y, f, tipL, opt = {}) {
     const sp = rig.sword, tv = tipOf(sp), t = m0.transformPoint(new DOMPoint(x + f * tipL[0], y + tipL[1])), h = frontHand.at;
     const k = m0.a / 2, ang = Math.atan2(t.y - h[1], t.x - h[0]) - Math.atan2(tv[1], tv[0]);
     const s = Math.min(1.12, Math.hypot(t.x - h[0], t.y - h[1]) / (Math.hypot(tv[0], tv[1]) * k));
-    c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.translate(h[0], h[1]); c.rotate(ang); c.scale(s * k, s * k); c.drawImage(sp.lit ? sp.lit[0] : sp.img, -sp.px, -sp.py); c.restore();
+    c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.translate(h[0], h[1]); c.rotate(ang); c.scale(s * k, s * k); c.drawImage(sp.lit ? sp.lit[0] : sp.img, -sp.px, -sp.py); if (opt.bladeWhite) c.drawImage(sp.white, -sp.px, -sp.py); c.restore();
     P.vhand = (() => { const w = m0.inverse().transformPoint(new DOMPoint(h[0], h[1])); return [w.x, w.y]; })();
   };
   const pose = frontPose(v, x, y, f, tipL, opt.low ?? 0.7, opt.air);
@@ -844,6 +846,53 @@ function viewBladeAt(r, x, y, f) {
   const dx = target[0] - g[0], dy = target[1] - g[1], d = Math.hypot(dx, dy) || 1;
   const len = Math.min(d, Math.hypot(...tipOf(rig.sword)) / 2 * 1.12);
   return { g, t: [g[0] + dx / d * len, g[1] + dy / d * len] };
+}
+// 사망 = 메탈슬러그식 4컷 통그림(art/knight/death/sheet.png, Codex) 갈아 끼우기 — 언더월드 프로토 방식 (사용자 지시 2026-10-29)
+// 맞음 → 무릎 풀림 → 엉덩방아·등 부딪힘 → 큰대자로 누움. 컷은 시트 칸 안 자리(cell)를 그대로 써서 그린 대로 뒤로 밀려나며 쓰러짐
+// 기준 = 1컷 발(anchor, 칸 x)이 P.x, 컷마다 맨 아래 줄이 바닥. 컷이 바뀌어 바닥에 부딪힐 때만 코드로 눌림·튐을 얹음
+// 칼은 그림에 없음: 게임 칼(rig.sword)이 1컷 손 자리에서 앞으로 돌며 날아가 칼끝부터 땅에 박힘 → 박힌 칼 그림(cut/stuck.png)으로 바뀜
+const DEATH = { F: [], k: 0.1, anchor: 0, times: [0, 0.12, 0.3, 0.5], H0: 87,   // H0 = 1컷 키(게임 px, 서 있는 리그 92px 의 약 0.95)
+  SWORD: { hand: [580, 230], t0: 0.04, T: 0.62, L: 40, dx: 40, H: 45, spin: 1, sink: 12 },   // hand = 1컷 손 자리(칸 px)
+  STUCK: { img: null, lit: null, entry: [0, 0], h: 1, vis: 0.75 } };   // 박힌 칼(cut/stuck.png): entry = 칼날이 땅에 들어간 자리, h = 땅 위로 보이는 높이(px), vis = 그중 칼 길이 비율
+const deathCut = t => { const T = DEATH.times; let i = 0; while (i < T.length - 1 && t >= T[i + 1]) i++; return i; };
+function drawDeath(c) {
+  const f = P.facing, k = DEATH.k, i = deathCut(P.t), fr = DEATH.F[i], T = DEATH.times;
+  const w = i >= 2 ? P.t - T[i] : 1;   // 부딪힌 뒤 지난 시간 (2·3컷 = 바닥에 닿는 컷)
+  const sq = i >= 2 ? Math.sin(Math.min(1, w / 0.14) * Math.PI) * Math.exp(-w * 10) * (i === 2 ? 0.16 : 0.1) : 0;   // 바닥에 부딪혀 납작 → 되돌아옴
+  const recoil = i === 0 ? Math.min(1, P.t / T[1]) * 4 : 4;   // 맞은 순간 살짝 뒤로 밀림
+  c.save();
+  c.translate(P.x - f * recoil, P.y); c.scale(f * (1 + sq * 0.6), 1 - sq);
+  c.drawImage(SHADE.on ? fr.lit[variantFor(c, LIGHT.ang)] : fr.img, (fr.cell[0] - DEATH.anchor) * k, -fr.h * k, fr.w * k, fr.h * k);
+  c.restore();
+  drawDeathSword(c);
+}
+function deathSword(t) {   // 칼 손잡이 월드 자리·각도 (각도 = 손잡이 → 칼끝 방향, 캔버스 기준) · 게임 칼 그림을 길이 L 로 줄여 그림
+  const S = DEATH.SWORD, f = P.facing, k = DEATH.k, L = S.L, f0 = DEATH.F[0];
+  const g0 = [P.x + f * (S.hand[0] - DEATH.anchor) * k, P.y - (f0.cell[1] + f0.h - S.hand[1]) * k];
+  const a0 = Math.atan2(-1, f * 0.35);   // 손에서 빠질 때 칼끝은 앞 위로
+  const a1 = Math.PI / 2 + f * 0.2;   // 칼끝이 아래로, 손잡이가 날아온 반대쪽으로 살짝 기울어 박힘 (박힌 그림과 같은 기울기)
+  let da = (a1 - a0) * f; da = ((da % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI) + 2 * Math.PI * S.spin;   // 앞으로 도는 쪽으로 한 바퀴 더
+  const g1 = [g0[0] + f * S.dx, P.y + S.sink - L * Math.sin(a1)];
+  const u = Math.max(0, Math.min(1, (t - S.t0) / S.T));
+  const D = Math.max(5, g1[1] - g0[1]), r = S.H / D, p = -r + Math.sqrt(r * r + r), A = S.H / (p * p), B = -2 * p * A;   // 중력 포물선: H 만큼 솟았다가(u = p) 떨어지며 점점 빨라져 땅에 꽂힘
+  const a = a0 + f * da * u;   // 같은 빠르기로 계속 돌다가 그대로 꽂힘
+  return { g: [g0[0] + (g1[0] - g0[0]) * u, u >= 1 ? g1[1] : g0[1] + B * u + A * u * u], a, L, a1, g1, stuck: u >= 1, w: t - S.t0 - S.T };
+}
+function drawDeathSword(c) {
+  const sw = rig?.sword; if (!sw) return;
+  const s = deathSword(P.t), f = P.facing, st = DEATH.STUCK;
+  if (s.stuck && st.img) {   // 박힌 칼 그림(Codex): 땅에 들어간 자리 = 그림의 entry, 박힌 직후 부르르
+    const e = [s.g1[0] + (P.y - s.g1[1]) / Math.sin(s.a1) * Math.cos(s.a1), P.y], ks = s.L * st.vis / st.h;
+    c.save(); c.translate(e[0], e[1]); c.scale(f, 1); c.rotate(Math.sin(s.w * 45) * 0.14 * Math.exp(-s.w * 8));
+    c.drawImage(SHADE.on ? st.lit[variantFor(c, LIGHT.ang)] : st.img, -st.entry[0] * ks, -st.entry[1] * ks, st.img.width * ks, st.img.height * ks);
+    c.restore(); return;
+  }
+  const tv = tipOf(sw), sc = s.L / (Math.hypot(...tv) / SS);
+  c.save();
+  c.beginPath(); c.rect(-1e5, -1e5, 2e5, 1e5 + P.y + 2); c.clip();   // 땅속으로 들어간 부분은 안 보이게
+  c.translate(s.g[0], s.g[1]); c.rotate(s.a - Math.atan2(tv[1], tv[0])); c.scale(sc / SS, sc / SS);
+  c.drawImage(SHADE.on ? sw.lit[variantFor(c, LIGHT.ang)] : sw.img, -sw.px, -sw.py);
+  c.restore();
 }
 function drawFrame(c, fr, x, y, f, alpha) {
   const k = FRAME.ks[fr.i] ?? FRAME.k;
@@ -913,7 +962,6 @@ function hitDummy(c) {
   F.damage(dmgOf(c), D.x + P.facing * 24, D.y - 210, fin ? 'fin' : 'normal');
   D.flash = 1; D.vt += P.facing * (fin ? 9 : 5);
   F.hitBurst(D.x + P.facing * 34, D.y - 84, P.facing, fin || c.big, c.hitUp ?? 0);   // 적을 베고 나간 반대쪽에서 터짐
-  if (c.sfx) F.sfx(c.sfx, D.x + P.facing * 20, D.y - 150, P.facing, fin);
   impactT = fin ? 0.05 : 0.03;   // 임팩트 컷: 화면 반전
   D.hp--;
   if (fin || D.hp <= 0) {
@@ -937,7 +985,8 @@ function cam() {
 // PIX = 도트 한 칸이 화면 몇 px 인지. 이펙트(잔상·초승달·충격·먼지)를 전부 한 장의 낮은 해상도 판에 그려 한꺼번에 굽는다.
 const PIX = { on: true, n: 2 };
 const pixBufs = {};
-function pixLayer(draw, step = 51, n = PIX.n) {   // n = 도트 한 칸 (보스·배경 굵기는 4)
+// o.nearest = 판에 옮길 때 고르게 섞지 않고 최근접 (보스: 섞으면 부위 경계가 중간색으로 번져 흐릿해 보였음)
+function pixLayer(draw, step = 51, n = PIX.n, o = {}) {   // n = 도트 한 칸 (보스·배경 굵기는 4)
   if (!PIX.on) { draw(ctx); return; }
   const w = Math.ceil(cv.width / n), h = Math.ceil(cv.height / n);
   let pixBuf = pixBufs[n]?.c, pixCtx = pixBufs[n]?.x;
@@ -945,7 +994,7 @@ function pixLayer(draw, step = 51, n = PIX.n) {   // n = 도트 한 칸 (보스�
   const m = ctx.getTransform();
   pixCtx.setTransform(1, 0, 0, 1, 0, 0); pixCtx.clearRect(0, 0, w, h);
   pixCtx.setTransform(m.a / n, m.b / n, m.c / n, m.d / n, m.e / n, m.f / n);
-  pixCtx.imageSmoothingEnabled = true;
+  pixCtx.imageSmoothingEnabled = !o.nearest;
   draw(pixCtx);
   pixCtx.setTransform(1, 0, 0, 1, 0, 0);
   const d = pixCtx.getImageData(0, 0, w, h), p = d.data;
@@ -989,7 +1038,7 @@ function render() {
   // 쉼터 · 허수아비 · 아이템 · 적 · 치즈
   drawShelter(); drawDummy(); drawItems();
   for (const e of E) shadow(e.x, e.type === 'crawler' ? e.y : GROUND, e.hw * 0.8);
-  if (BOSS) pixLayer(c => BOSS.draw(c, (x, y, r) => { c.fillStyle = 'rgba(20,18,46,0.35)'; c.beginPath(); c.ellipse(x, y + 2, r, Math.max(6, r * 0.14), 0, 0, 7); c.fill(); }), 24, 4);   // 보스는 배경과 같은 굵은 도트
+  if (BOSS) pixLayer(c => BOSS.draw(c, (x, y, r) => { c.fillStyle = 'rgba(20,18,46,0.35)'; c.beginPath(); c.ellipse(x, y + 2, r, Math.max(6, r * 0.14), 0, 0, 7); c.fill(); }), 32, 4, { nearest: true });   // 보스는 배경과 같은 굵은 도트 · 색 단계 적게 · 최근접
   pixLayer(c => { drawFoes(c); drawCheese(c); }, 24);
 
   // 뒤쪽 이펙트
@@ -1010,9 +1059,10 @@ function render() {
       else drawRig(c, rig, gh.pose, gh.x, gh.y, gh.f, { ghost: 0.28 * (1 - gh.t / 0.22) });
     }
     if (P.inv > 0 && P.state !== 'dead' && Math.floor(time * 20) % 2) return;   // 맞은 뒤 무적 동안 깜빡임
-    if (P.frame && FR[P.frame.i]) drawFrame(c, P.frame, P.x, P.y, P.facing, 1);
-    else if ((P.view === 'front' || P.view === 'back') && frig) drawView(c, P.view, P.x, P.y, P.facing, P.tipL, { flash: P.flash, low: P.low, air: !P.ground });
-    else drawRig(c, rig, P.pose, P.x, P.y, P.view === 'flip' ? -P.facing : P.facing, { flash: P.flash });
+    if (P.state === 'dead' && DEATH.F.length) drawDeath(c);
+    else if (P.frame && FR[P.frame.i]) drawFrame(c, P.frame, P.x, P.y, P.facing, 1);
+    else if ((P.view === 'front' || P.view === 'back') && frig) drawView(c, P.view, P.x, P.y, P.facing, P.tipL, { flash: P.flash, low: P.low, air: !P.ground, bladeWhite: F.bladeWhite() });
+    else drawRig(c, rig, P.pose, P.x, P.y, P.view === 'flip' ? -P.facing : P.facing, { flash: P.flash, bladeWhite: F.bladeWhite() });
   }, 24);   // 몸도 도트로 (색 약 10단계)
 
   // 앞쪽 이펙트
@@ -1073,10 +1123,11 @@ const THEMES = {
     floor: { src: 'floor_keyed.png', top: 180, s: 0.3, cell: 10 }, haze: ['#162a3a', '#1c3442', '#1c3442', '#1c3442', '#1c3442'], shade: '#0b131a' },
 };
 const TIERS = [   // 깊이 단 모양 (모든 테마 공통): p = 카메라 따라가는 정도 · base = 그 단의 땅선 · a = 안개 진하기
-  { p: 0.62, s: 0.22, base: GROUND - 42, blur: 1.8, a: 0.34, bright: 0.68, cell: 8, gap: [150, 300] },
-  { p: 0.78, s: 0.3, base: GROUND - 24, blur: 0.8, a: 0.18, bright: 0.78, cell: 7, gap: [230, 420] },
-  { p: 0.92, s: 0.38, base: GROUND - 9, blur: 0.15, a: 0.06, bright: 0.9, cell: 6, gap: [380, 680] },
-];
+  { p: 0.62, s: 0.22, base: GROUND - 42, blur: 1.8, a: 0.38, bright: 0.66, cell: 14, gap: [150, 300] },
+  { p: 0.78, s: 0.3, base: GROUND - 24, blur: 0.8, a: 0.24, bright: 0.76, cell: 10, gap: [230, 420] },
+  { p: 0.92, s: 0.38, base: GROUND - 9, blur: 0.15, a: 0.12, bright: 0.86, cell: 8, gap: [380, 680] },
+];   // 물건 도트 = cell × s ≈ 게임 3px — 바닥·앞 판 도트와 같은 굵기 (예전 6~8 은 약 2px 로 배경보다 잘아서 매끈해 보였음)
+// 물건이 배경에서 떠 보이지 않게 (2026-10-29): 앞 단도 안개를 조금 먹고 밝기는 중경 판(0.76) 근처로, 채도를 낮추고 장면 색을 곱하고, 밑동은 그늘로 어둡게 + 바닥 접지 그림자
 const FG = { p: 1.18, blur: 0.6, bright: 0.74, cell: 7, s: 0.5 };
 const TH = {};   // 구워 둔 테마 { planes, fg, floor, tiers:[{ground, obj}] }
 const theme = () => TH[ROOMS[room].theme] || TH[THEMES[ROOMS[room].theme]?.fallback] || TH.forest;
@@ -1094,7 +1145,8 @@ async function loadTheme(name) {
   const objs = {}; for (const n of D.objs) objs[n] = await loadImg(`${dir}obj/${n}.png`);
   t.objs = D.objs.filter(n => objs[n]);
   TIERS.forEach((T, i) => {
-    const o = {}; for (const n of t.objs) o[n] = bakeLayer(objs[n], T.blur, [D.haze[2 + i], T.a], T.bright, T.cell);
+    const line = mixHex(D.shade, D.haze[2 + i], 0.2 + T.a);   // 물건 테두리: 그늘색, 먼 단일수록 안개에 묻힘
+    const o = {}; for (const n of t.objs) o[n] = bakeLayer(objs[n], T.blur, [D.haze[2 + i], T.a], T.bright, T.cell, line, { amb: D.haze[2 + i], shade: D.shade });
     t.tiers.push({ obj: o, ground: bakeLayer(floorIm, T.blur, [D.haze[2 + i], T.a], T.bright, D.floor.cell) });
   });
   TH[name] = t;
@@ -1122,17 +1174,30 @@ function drawTiers(c) {
       const w = b.width * T.cell * T.s, h = b.height * T.cell * T.s, x = it.x + c.x * (1 - T.p);
       if (x + w < c.x - 50 || x - w > c.x + W + 50) continue;
       ctx.save(); ctx.translate(x, T.base + 4 + oy); if (it.flip) ctx.scale(-1, 1);
+      const d = T.cell * T.s;   // 접지 그림자: 도트 굵기 계단 타원 (그늘색 반투명)
+      ctx.fillStyle = th.def.shade + '99';
+      for (const [k, dy] of [[0.62, -d], [0.74, 0], [0.5, d]]) ctx.fillRect(Math.round(-w * k / 2 / d) * d, dy - d / 2, Math.round(w * k / d) * d, d);
       ctx.drawImage(b, -w / 2, -h, w, h); ctx.restore();
     }
   });
 }
-function bakeLayer(im, blur, haze, bright, cell) {
+const mixHex = (a, b, t) => [1, 3, 5].map(k => Math.round(parseInt(a.substr(k, 2), 16) * (1 - t) + parseInt(b.substr(k, 2), 16) * t));
+// obj = 땅 위 물건용 { amb: 장면 색(곱하기로 물듦), shade: 밑동 그늘색 }
+function bakeLayer(im, blur, haze, bright, cell, line = null, obj = null) {
   if (!im) return null;
   const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
   const x = c.getContext('2d');
-  x.filter = `blur(${blur}px) brightness(${bright})`; x.drawImage(im, 0, 0); x.filter = 'none';
+  x.filter = `blur(${blur}px) brightness(${bright})${obj ? ' saturate(0.85)' : ''}`; x.drawImage(im, 0, 0); x.filter = 'none';
+  if (obj) {
+    const [r, g, b] = mixHex('#ffffff', obj.amb, 0.28); x.globalCompositeOperation = 'multiply'; x.fillStyle = `rgb(${r},${g},${b})`; x.fillRect(0, 0, c.width, c.height);   // 장면 빛 색으로 물듦
+    x.globalCompositeOperation = 'destination-in'; x.drawImage(im, 0, 0);   // multiply 가 칠한 바깥을 다시 지움
+    x.globalCompositeOperation = 'source-atop';
+    const gr = x.createLinearGradient(0, c.height * 0.55, 0, c.height); gr.addColorStop(0, obj.shade + '00'); gr.addColorStop(1, obj.shade + '77');
+    x.fillStyle = gr; x.fillRect(0, 0, c.width, c.height);   // 밑동은 바닥 그늘에 잠김 (도트화 때 띠로 끊김)
+    x.globalCompositeOperation = 'source-over';
+  }
   if (haze) { x.globalCompositeOperation = 'source-atop'; x.globalAlpha = haze[1]; x.fillStyle = haze[0]; x.fillRect(0, 0, c.width, c.height); }   // 멀수록 안개색
-  return pixelate(c, cell);
+  return pixelate(c, cell, 24, line);
 }
 // 한 레이어를 가로로 이어 붙임: 화면에서 카메라의 p 만큼만 움직이게 (월드 좌표 = 화면 좌표 + 카메라)
 function tileLayer(b, cell, s, y, p, c) {
@@ -1219,6 +1284,7 @@ function sampleBlade(t0, t1) {
   if (!P.trail) {
     P.trail = F.streakStart(P.atkId); P.trail.f = P.facing; P.trail.life = c.act;
     P.trail.tipAttached = P.atkName === 'slash3';
+    P.trail.stick = P.atkName === 'air' || P.atkName === 'plunge';   // 흰 단계 동안 칼에 붙임: 공중 공격만 (사용자 선택 2026-10-29)
     if (c.dashFx) F.FX.streaks = F.FX.streaks.filter(s => s === P.trail);   // 돌진 섬광만 남김 (앞 회전의 칼빛 꼬리와 겹쳐 두 갈래로 보이지 않게)
     if (c.flatFx) P.trail.wFix = c.flatFx;   // 수평 회전 베기: 어느 자리든 같은 굵기의 얇은 띠
     if (c.fxScale) P.trail.wMul = c.fxScale;   // 충전 돌진 마무리: 모은 만큼 칼빛이 굵어짐
@@ -1252,7 +1318,7 @@ function sampleBlade(t0, t1) {
       out = [g2[0] + (out[0] - g2[0]) * k, g2[1] + (out[1] - g2[1]) * k];
     }
     if (c.fxAhead && !P.trail.tipAttached) { out = [out[0] + f * c.fxAhead, out[1]]; g2 = [g2[0] + f * c.fxAhead, g2[1]]; }   // 1·2타의 기존 앞쪽 강조 유지
-    F.streakPush(P.trail, out[0], out[1], time - (t1 - ts), g2[0], g2[1], out[0], out[1]);
+    F.streakPush(P.trail, out[0], out[1], time - (t1 - ts), g2[0], g2[1], out[0], out[1], [bl.t[0], bl.t[1], bl.g[0], bl.g[1]]);
     P.tip = out;
     if (Math.random() < 0.12) F.tipSpark(out[0], out[1], f);
   }
@@ -1423,6 +1489,17 @@ const loadImg = src => new Promise(ok => { const im = new Image(); im.onload = (
   const spinDir = classic ? '../art/knight/v6spin/frames' : '../art/knight/v7/spin';
   for (let i = 9; i <= 12; i++) { const im = await loadImg(`${spinDir}/f${i}.png`); if (im) { FR[i] = toCanvas(im); FRL[i] = bakePart(FR[i]); } }
   try { Object.assign(FRAME.meta, await (await fetch('../art/knight/v6spin/frames/meta.json')).json()); } catch (e) {}
+  try {   // 사망 4컷: frames/meta.json = 컷마다 칸 안 자리(cell)·크기, 1컷 발(foot) = 기준
+    const meta = await (await fetch('../art/knight/death/frames/meta.json')).json(), F4 = [];
+    for (const m of meta.frames) { const im = await loadImg(`../art/knight/death/frames/${m.src}`); if (!im) throw new Error(m.src); const cv0 = toCanvas(im); F4.push({ ...m, img: cv0, lit: bakePart(cv0) }); }
+    Object.assign(DEATH, { F: F4, anchor: meta.frames[0].foot, k: DEATH.H0 / meta.frames[0].h });
+  } catch (e) { console.warn('사망 4컷 없음', e); }
+  { const im = await loadImg('../art/knight/death/cut/stuck.png'); if (im) {   // 박힌 칼: entry = 맨 아래 줄(땅선) 불투명 픽셀 가운데, h = 땅선 ~ 맨 위(칼자루 끝)
+    const cv0 = toCanvas(im), W = cv0.width, H = cv0.height, d = cv0.getContext('2d').getImageData(0, 0, W, H).data, on = (x, y) => d[(y * W + x) * 4 + 3] > 128;
+    let minY = H, maxY = 0; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (on(x, y)) { minY = Math.min(minY, y); maxY = Math.max(maxY, y); }
+    let sx = 0, n = 0; for (let y = maxY - 4; y <= maxY; y++) for (let x = 0; x < W; x++) if (on(x, y)) { sx += x; n++; }
+    Object.assign(DEATH.STUCK, { img: cv0, lit: bakePart(cv0), entry: [n ? sx / n : W / 2, maxY + 1], h: maxY + 1 - minY });
+  } }
   if (FR[11]) for (let i = 9; i <= 12; i++) FRAME.ks[i] = 62 / 300;   // 공 몸통(칼 뺀 지름 약 300px) ≈ 게임 62px, 네 장 같은 배율
   try { frig = await loadRig(classic ? '../art/knight/rig_front' : '../art/knight/rig_front_urban'); } catch (e) { console.warn('정면 리그 없음', e); }
   for (const name in THEMES) await loadTheme(name);   // 그림이 없는 테마는 건너뜀 → 숲으로 대신 그림
@@ -1454,7 +1531,7 @@ const loadImg = src => new Promise(ok => { const im = new Image(); im.onload = (
     showBanner(`${n.name} — ${n.desc}`, 3);
   };
   loadRoom(0);
-  globalThis.__game = { ROOMS, got, go, loadRoom, G, get E() { return E; }, get BOSS() { return BOSS; },
+  globalThis.__game = { ROOMS, got, go, loadRoom, G, DEATH, deathSword, get E() { return E; }, get BOSS() { return BOSS; },
     get CH() { return CH; }, PIX, P, D, A, F, rig, opt, SHADE, LIGHT, shot, stageShot, film, startAttack, startDash, FR, FRAME, drawView, HBOX, playerAttackBox, playerHurtBox, foeHurtBox, enemyAttack, combatCols, spawnFoe, tryHit, get frig() { return frig; }, get D2() { return D; },
     step: (n, dt = 1 / 60) => { manual = true; for (let i = 0; i < n; i++) tick(dt); manual = false; },   // 테스트: 저장 없이 프레임만 넘김
   };

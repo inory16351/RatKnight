@@ -167,6 +167,7 @@ export function drawRig(ctx, P, pose, ax, ay, facing, opt = {}) {
     const m = ctx.getTransform(), t = tipOf(P.sword);
     blade.grip = [m.e, m.f]; blade.tip = xf(m, t);
     put(P.sword, false);
+    if (opt.bladeWhite) ctx.drawImage(P.sword.white, -P.sword.px, -P.sword.py);   // 칼빛이 흰 동안 칼도 흰색
   });
   const leg = (hip, t, s, far) => {
     ctx.save();

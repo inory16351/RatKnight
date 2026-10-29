@@ -1,0 +1,6 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: duck.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. Do NOT edit or post-process the image with code. After saving, reply only with the file name.
+
+Attached: ref_char.png = the hero of our cute 2D action game. Use it ONLY as the style reference: the same completely FLAT style — one solid color per area, NO gradients, NO shading, NO shadows, NO highlights, NO texture, NO dirt stains or grime blotches, NO outlines. Bold simple rounded shapes, bold pop-art palette. Do NOT draw the mouse. NOT pixel art (it will be pixelated later by code).
+
+Draw ONE object: a big yellow RUBBER DUCK toy lying around in a city sewer (seen at mouse scale, so it is huge), side view facing RIGHT, standing upright on its own flat bottom. Simple chunky silhouette: round body, round head, short raised tail, orange flat beak, one black round eye with a tiny white dot, and a tiny bent golden paper crown on its head. Colors: lemon yellow body as ONE flat color, orange beak, gold crown; at most two small flat olive-green slime splats as simple flat shapes.
+- 1024x1024, solid flat MAGENTA background (#FF00FF), the duck alone and centered, filling about 75% of the image, nothing touching the edges. No ground, no shadow, no text.

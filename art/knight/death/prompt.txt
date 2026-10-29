@@ -1,0 +1,13 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: hit.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. Do NOT edit or post-process the image with code. After saving, reply only with the file name.
+
+Attached: ref_char.png = the HERO of our 2D action game, a tiny chibi mouse knight. Draw THIS SAME CHARACTER with the exact same design, colors and proportions: big pink-lined round ears, grey-brown fur, bottle-cap shoulder pad and grey chest plate, torn dark-navy cape, teal-and-cream sash, bandaged wrists and boots, long pink tail, and his straight one-handed knight sword with the round-holed cross guard. Same completely FLAT style: one solid color per area, NO shading, NO highlight, NO gradient, NO outlines.
+
+Pose = the instant he takes a FATAL HIT and starts to topple straight BACKWARD like a stiff plank (we will rotate the whole image in the game so he falls flat on his back):
+- Side view, his face toward the RIGHT, the hit came from the right.
+- Whole body almost straight and rigid, leaning only slightly backward (about 10 degrees), both feet still on the ground close together, heels planted.
+- Head snapped back, eyes squeezed shut as two simple ">" "<" style cartoon marks, small open mouth, ears flung back.
+- Both arms flung forward and up from the shock, hands open; the sword just slipping out of his open right hand, still close to the hand, pointing up-forward.
+- Cape and tail flung forward (toward the right) by the backward jolt.
+- Full body visible, nothing cropped.
+
+Image: 1024x1536 portrait, the character alone, centered, large, with wide margins; solid flat MAGENTA background (#FF00FF). No text, no labels, no ground line, no shadow, no speed lines, no impact effects, no stars.

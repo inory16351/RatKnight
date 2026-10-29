@@ -1,0 +1,9 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: stuck.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. Do NOT edit or post-process the image with code. After saving, reply only with the file name.
+
+Attached: ref_sword.png = the HERO's sword in our 2D action game (a straight one-handed knight sword: chipped blade, cross guard with two round holes, wrapped grip, round pommel). Draw THIS SAME SWORD with the exact same design and colors, in the same completely FLAT style: one solid color per area, NO shading, NO highlight, NO gradient, NO outlines.
+
+Scene: the sword has just fallen from the sky and is STUCK in the ground, point first, standing almost upright and tilted about 12 degrees to the right (pommel toward the right). Only about the upper 70% of the sword is visible: the lower part of the blade is buried and hidden. At the spot where the blade enters the ground: a small flat cartoon impact mark — a short dark crack in the ground with a few chunky pebbles/dirt bits kicked up around the blade on both sides, and a small mound of broken dirt. Seen exactly from the side (a side-scrolling game view), the ground surface is a perfectly horizontal line.
+
+Do NOT draw the ground itself as a filled area: everything below the ground line is magenta. Only the sword, the dirt mound and the kicked-up bits sit on top of the ground line.
+
+Image: 1024x1024 square, the sword centered and large, wide margins; solid flat MAGENTA background (#FF00FF). No text, no labels, no shadow, no speed lines, no glow, no stars.

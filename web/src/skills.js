@@ -3,7 +3,7 @@
 // 추가 액션(내려찍기·충전 돌진·벽 차기)은 전부 노드. 벽 차기는 Lv4 부터 → 지하철역 수직갱과 앞 지역 지름길의 열쇠.
 export const NODES = {
   root: { name: '기사의 다짐', desc: '모든 길의 시작', at: [0, 0], links: [], lv: 1 },
-  plunge: { name: '내려찍기', desc: '공중에서 ↓ + 공격. 적에 꽂히면 튕겨 오름', at: [-1, 1], links: ['root'], lv: 2, kind: 'act' },
+  plunge: { name: '내려찍기', desc: '공중에서 ↓ + 공격. 땅까지 꽂히며 아래 적을 밀어냄', at: [-1, 1], links: ['root'], lv: 2, kind: 'act' },
   atk1: { name: '날 세우기', desc: '공격력 +20%', at: [0, 1], links: ['root'], lv: 2, kind: 'stat' },
   hp1: { name: '병뚜껑 덧대기', desc: '최대 체력 +1', at: [1, 1], links: ['root'], lv: 2, kind: 'stat' },
   charge: { name: '충전 돌진', desc: 'F 를 길게 눌러 모았다가 떼면 돌진 베기', at: [-1, 2], links: ['plunge', 'atk1'], lv: 3, kind: 'act' },

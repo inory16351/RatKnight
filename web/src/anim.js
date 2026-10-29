@@ -169,8 +169,8 @@ export const ATTACKS = {
     S: bodyU({ torso: 48, head: -34, y: -14, fU: 70, fF: 110, nT: 125, nS: -155, fT: 115, fS: -155, cape: 70, tail: 60, sq: 0.14 }),   // 공처럼 맒: 등을 둥글게, 머리 숙이고 무릎을 가슴까지, 빈손은 무릎을 감쌈
     trail: 'thick', ell: { cx: 24, cy: -80, rx: 130, ry: 44 }, sfx: '촤악!',
   },
-  plunge: { // 내려찍기 (공중 ↓ + 공격): 살짝 떠오르며 칼을 머리 위로 들었다가 → 앞으로 크게 돌려 아래로 꽂고 급강하. 공중에서 적을 맞히면 튕겨 오름, 땅에 꽂히면 충격파 (main 의 plunge 처리)
-    uw: true, wind: 0.1, act: 0.07, rec: 0.22, lean: 0, low: 0, plunge: true, noTrail: true, lunge: 0, dmg: 10, kb: 100, stop: 0.07, shake: 6, hitAt: 0, range: [-60, 60], h: [-220, 160], hitUp: -70, sfx: '쾅!',
+  plunge: { // 내려찍기 (공중 ↓ + 공격): 살짝 떠오르며 칼을 머리 위로 들었다가 → 앞으로 크게 돌려 아래로 꽂고 급강하. 아래 적은 옆으로 밀어내며 땅까지 꽂힘, 땅에 꽂히면 충격파 (main 의 plunge 처리)
+    uw: true, wind: 0.1, act: 0.07, rec: 0.22, lean: 0, low: 0, plunge: true, noTrail: true, lunge: 0, dmg: 10, kb: 320, stop: 0.07, shake: 6, hitAt: 0, range: [-60, 60], h: [-220, 160], hitUp: -70, sfx: '쾅!',
     W: aim(body({ torso: -10, head: 6, nU: 160, nF: 10, nT: 90, nS: -120, fT: 70, fS: -110, fU: 120, fF: 30, cape: 50, tail: 40, sq: -0.04 }), 175),
     S: aim(body({ torso: 10, head: -6, nU: 10, nF: 0, nT: 80, nS: -110, fT: 60, fS: -100, fU: 20, fF: 20, cape: 85, tail: 60, sq: -0.1 }), 2),   // 칼끝이 발밑을 향해 곧게
   },

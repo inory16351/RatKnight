@@ -219,8 +219,14 @@ function drawSweeps(ctx) {
 // 칼끝(머리)이 그림의 뾰족한 앞끝, 꼬리는 휘두른 반대쪽으로 점점 가늘어져 바늘 끝이 되는 그림 한 장.
 // 머리 = 지금 칼끝 자리, 방향 = 최근 칼끝 이동 방향, 길이 = 최근 이동 거리에 비례 (빠를수록 길게). 휘두르는 동안 생김→최대, 끝나면 찢어지며 사라짐.
 export function streakStart(id) { const s = { id, pts: [], open: true, t: 0, fade: 0 }; FX.streaks.push(s); return s; }
-export function streakPush(s, x, y, now, gx, gy, rx, ry) { s.pts.push({ x, y, at: now, gx, gy, rx, ry }); if (s.pts.length > 160) s.pts.shift(); }
+// raw = [칼끝 x, y, 손잡이 x, y] 실제 칼 자리 → 흰 단계 동안 칼빛을 칼에 붙여 그림 (없으면 앞 점의 밀림을 이어받음)
+export function streakPush(s, x, y, now, gx, gy, rx, ry, raw) {
+  const q = s.pts[s.pts.length - 1];
+  const o = raw ? [x - raw[0], y - raw[1], (gx ?? x) - raw[2], (gy ?? y) - raw[3]] : q?.o || [0, 0, 0, 0];
+  s.pts.push({ x, y, at: now, gx, gy, rx, ry, o }); if (s.pts.length > 160) s.pts.shift();
+}
 export function streakEnd(s) { if (s) s.open = false; }
+export const bladeWhite = () => FX.whiteRed && FX.streaks.some(s => s.pts.length > 1 && (s.open || s.fade < 0.0625));   // 칼빛이 새하얀 단계(colFor 의 h < 0.25)인 동안 칼도 흰색
 const STREAK_FADE = 0.4;
 function drawStreaks(ctx) {
   // 절차적 궤적: 칼끝이 지나간 자리마다 점을 찍고, 점마다 '나이'로 굵기·길이가 줄어듦 (머리 = 막 지나간 곳 = 가장 굵고, 오래된 꼬리는 가늘어져 바늘 끝으로 사라짐).
@@ -236,13 +242,16 @@ function drawStreaks(ctx) {
     const P = s.pts; if (P.length < 2) continue;
     const LIFE = s.span ?? Math.max(0.36, (s.life || 0.15) * 2.6);   // 휘두름 처음부터 끝까지 꼬리가 남도록 (act 보다 길게) · span = 경로 베기의 짧은 수명
     const seg = [];
-    for (const p of P) {
-      const age = (now - p.at) / LIFE; if (age >= 1 || age < 0) continue;
-      let dx = (p.gx ?? p.x) - p.x, dy = (p.gy ?? p.y) - p.y, d = Math.hypot(dx, dy);
+    const h = s.open ? 0 : s.fade / 0.25, stick = FX.whiteRed && s.stick ? 1 - Math.min(1, Math.max(0, (h - 0.25) / 0.35)) : 0;   // 흰 단계 = 칼에 붙음 → 노랑으로 바뀌며 원래 자리로 펴짐 (s.stick = 공중 공격만, 평타는 원래 자리)
+    for (const p0 of P) {
+      const age = (now - p0.at) / LIFE; if (age >= 1 || age < 0) continue;
+      const o = p0.o, p = stick && o ? { x: p0.x - o[0] * stick, y: p0.y - o[1] * stick, at: p0.at } : p0;
+      let dx = (p0.gx ?? p0.x) - p0.x, dy = (p0.gy ?? p0.y) - p0.y, d = Math.hypot(dx, dy);   // 굵기·방향은 원래 칼빛 그대로, 자리만 칼에 붙임
       if (d < 8) { dx = 0; dy = 1; d = 1; }
       s.dRef = s.dRef || d; if (d > s.dRef * 1.1) { dx *= s.dRef * 1.1 / d; dy *= s.dRef * 1.1 / d; d = s.dRef * 1.1; }   // 굵기는 시작할 때 칼 길이로 고정 (정면·뒷모습으로 바뀌며 손 자리가 튀어도 갑자기 두꺼워지지 않게)
       // 폭 = 칼 길이의 대부분 (칼에 두껍게 붙어 따라오는 부채꼴) · wFix = 어느 자리든 같은 굵기의 얇은 띠 (수평 회전 베기)
-      const width = s.tipAttached ? Math.min(150, d * 0.78) : Math.min(180, Math.max(60, d * 0.95));
+      let width = s.tipAttached ? Math.min(150, d * 0.78) : Math.min(180, Math.max(60, d * 0.95));
+      if (p !== p0) { const bl = Math.hypot((p0.gx ?? p0.x) - o[2] - p.x, (p0.gy ?? p0.y) - o[3] - p.y); width += (Math.min(width, bl) - width) * stick; }   // 붙어 있는 동안은 칼날 길이만큼만 (손잡이 너머로 안 넘침)
       const w = (s.wFix ?? width) * (s.wMul ?? 1) * Math.pow(1 - age, 0.35) * Math.min(1, (p.at - P[0].at) / 0.02 + 0.2);
       seg.push({ x: p.x, y: p.y, vx: dx / d * w, vy: dy / d * w, a: 1 - age * age });
     }
