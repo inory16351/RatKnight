@@ -7,6 +7,8 @@ import { makeToad, TOAD } from './boss.js';
 import { makeCentipede, CENTI } from './centipede.js';
 import * as HBOX from './hitbox.js';
 import * as SK from './skills.js';
+import * as HUD from './hud.js';
+performance.setResourceTimingBufferSize?.(5000);   // 단일 HTML 빌드(tools/build_single.js)가 읽은 그림 목록을 빠짐없이 모으게 (기본 250개에서 잘림)
 
 const W = 1280, H = 720, GROUND = 600;
 const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
@@ -83,7 +85,7 @@ const bossApi = {
     const K = BOSSES[b.type]; G.down[b.type] = true; slowT = 0.6; zoomTgt = 1.15; flashScreen = 1;
     dropCheese(b.hx ?? b.x, (b.hy ?? b.y - 140) - 40, K.xp);
     showBanner(K.win, 5);
-    document.getElementById('bossbar').style.opacity = 0;
+    bossName = null;   // 보스 막대 내림
   },
 };
 
@@ -94,7 +96,13 @@ addEventListener('keydown', e => { const k = KEYMAP[e.code]; if (!k) return; e.p
 addEventListener('keyup', e => { const k = KEYMAP[e.code]; if (k) keys[k] = false; });
 // 우클릭 = 강공격 (메뉴는 막음)
 cv.addEventListener('contextmenu', e => e.preventDefault());
-cv.addEventListener('mousedown', e => { if (e.button === 2) { e.preventDefault(); if (!keys.heavy) pressed.heavy = true; keys.heavy = true; } });
+cv.addEventListener('mousedown', e => {
+  if (e.button === 0 && SK.skillUI.open) {   // 스킬 노드 창: 노드 클릭 = 고르고 배우기
+    const r = cv.getBoundingClientRect(), id = HUD.nodeAt((e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * H, W, H);
+    if (id) { SK.skillUI.sel = id; SK.skillUI.onLearn?.(id); }
+    return;
+  }
+  if (e.button === 2) { e.preventDefault(); if (!keys.heavy) pressed.heavy = true; keys.heavy = true; } });
 addEventListener('mouseup', e => { if (e.button === 2) keys.heavy = false; });
 
 // ---------- 상태 ----------
@@ -137,8 +145,8 @@ function loadRoom(i) {
   const bs = ROOMS[i].boss;
   bossApi.P = P; BOSS = bs && !G.down[bs.type] ? BOSSES[bs.type].make(bossApi, bs.x) : null;
   if (BOSS) BOSS.type = bs.type;
-  const bar = document.getElementById('bossbar'); if (bar) bar.style.opacity = BOSS ? 1 : 0;
-  if (BOSS) { showBanner(BOSSES[bs.type].title, 2.5); document.getElementById('bossname').textContent = BOSSES[bs.type].bar; }
+  bossName = BOSS ? BOSSES[bs.type].bar : null;
+  if (BOSS) showBanner(BOSSES[bs.type].title, 2.5);
   else if (ROOMS[i].hint && !has('wall')) showBanner(ROOMS[i].hint, 4);
   F.streakEnd(P.trail); P.trail = null; F.FX.streaks.length = 0; F.FX.sprites.length = 0; F.FX.flips = []; P.ghosts = [];
   document.getElementById('room').textContent = ROOMS[i].name;
@@ -179,8 +187,8 @@ function collideBlocks(xPrev, yPrev) {
     else if (P.y - PH < b.y + b.h && yPrev <= b.y + 1) { P.y = b.y; }
   }
 }
-let bannerT = 0;
-function showBanner(text, sec = 3) { const b = document.getElementById('banner'); b.textContent = text; b.style.opacity = 1; bannerT = sec; }
+let bannerT = 0, bannerText = '', bossName = null;   // 알림 띠 · 보스 막대 이름 (그리기는 hud.js)
+function showBanner(text, sec = 3) { bannerText = text; bannerT = sec; }
 function checkItems() {
   for (const it of ROOMS[room].items) {
     const iy = it.y ?? GROUND;
@@ -383,7 +391,7 @@ function respawn() {
 function checkShelter() {
   const s = ROOMS[room].shelter;
   if (s == null || !P.ground || Math.abs(P.x - s) > 40 || P.state === 'dead') return;
-  if (pressed.up && P.state === 'move') { SK.skillUI.open = true; SK.skillUI.sel = SK.skillUI.sel || 'root'; P.vx = 0; SK.render(G); }   // 쉼터에서만 스킬 노드 창
+  if (pressed.up && P.state === 'move') { SK.skillUI.open = true; SK.skillUI.sel = SK.skillUI.sel || 'root'; P.vx = 0; }   // 쉼터에서만 스킬 노드 창
   const key = room + ':' + s, first = !G.lit.has(key), moved = G.save.room !== room || G.save.x !== s;
   if (first || moved || P.hp < G.maxHp) {
     G.lit.add(key); G.save = { room, x: s }; P.hp = G.maxHp;
@@ -525,10 +533,11 @@ function update(dt) {
     const ws = has('wall') && !P.ground ? wallSide() : 0;
     P.slide = ws && dir === ws && P.vy > 0 ? ws : 0;
     if (P.slide) { P.vy = Math.min(P.vy, 150); P.facing = -ws; P.wallT = 0.1; P.wallS = ws; if (Math.random() < 0.3) F.dust(P.x + ws * PW, P.y - 30, -ws, 0.35); }
+    P.slideT = P.slide ? (P.slideT || 0) + dt : 0;   // 벽에 붙은 시간 (처음 잠깐 = 철썩 붙는 컷)
     if (P.jumpBuf > 0 && (P.ground || P.coyote > 0)) { P.vy = -JUMP_V; P.ground = false; P.coyote = 0; P.jumpBuf = 0; F.dust(P.x, P.y, P.facing, 0.8); }
     else if (P.jumpBuf > 0 && !P.ground && (ws || P.wallT > 0) && has('wall')) {
       const s = ws || P.wallS;
-      P.vy = -JUMP_V * 0.96; P.vx = -s * 420; P.facing = -s; P.wallLock = 0.16; P.jumpBuf = 0; P.wallT = 0;
+      P.vy = -JUMP_V * 0.96; P.vx = -s * 420; P.facing = -s; P.wallLock = 0.16; P.jumpBuf = 0; P.wallT = 0; P.kickT = 0; P.kickS = s;
       P.airDash = true; P.airAtk = true; P.djAvail = true;
       F.dust(P.x + s * PW, P.y - 20, -s, 1); shake = Math.max(shake, 2);
     }
@@ -628,7 +637,7 @@ function update(dt) {
     if (wasGround) P.coyote = 0.08;
     P.ground = false;
   }
-  P.coyote -= dt; P.landT += dt; P.djT += dt; P.inv = Math.max(0, P.inv - dt); P.wallT = (P.wallT || 0) - dt; P.wallLock = (P.wallLock || 0) - dt;
+  P.coyote -= dt; P.landT += dt; P.djT += dt; P.kickT = (P.kickT ?? 9) + dt; P.inv = Math.max(0, P.inv - dt); P.wallT = (P.wallT || 0) - dt; P.wallLock = (P.wallLock || 0) - dt;
   checkExits(); checkItems(); checkShelter();
   updateFoes(dt); updateCheese(dt); if (BOSS) BOSS.update(dt);
   if (P.state === 'dead' && P.dying && P.t > 2.2) respawn();   // 쓰러지면 잠시 뒤 마지막 쉼터에서
@@ -692,6 +701,7 @@ function update(dt) {
     D.respawn -= dt; if (D.respawn <= 0) { D.cut = null; D.hp = 3; }
   }
   for (const gh of P.ghosts) gh.t += dt;
+  if (MOVE.F.length) { const mv = moveCut(); if (mv?.dj && (P.silT = (P.silT || 0) - dt) <= 0) { P.silT = 0.035; P.ghosts.push({ mv, x: P.x, y: P.y, f: P.facing, t: 0, sil: (P.silN = (P.silN || 0) + 1) % 2 }); } }   // 이단 점프 실루엣 (하늘·분홍 번갈아)
   P.ghosts = P.ghosts.filter(gh => gh.t < 0.22);
   P.flash = Math.max(0, P.flash - dt * 6);
   for (const k in pressed) pressed[k] = false;
@@ -846,6 +856,30 @@ function viewBladeAt(r, x, y, f) {
   const dx = target[0] - g[0], dy = target[1] - g[1], d = Math.hypot(dx, dy) || 1;
   const len = Math.min(d, Math.hypot(...tipOf(rig.sword)) / 2 * 1.12);
   return { g, t: [g[0] + dx / d * len, g[1] + dy / d * len] };
+}
+// 이단 점프 · 벽 매달리기 = 통그림 6컷 (art/knight/move/sheet.png, Codex, 사용자 지시 2026-10-29)
+// 0 웅크림 · 1 공(앞으로 한 바퀴 돎) · 2 펴기 / 3 벽에 철썩 · 4 미끄러짐 · 5 박차기. 그림은 모두 오른쪽 보기, 벽 컷은 벽이 그림 왼쪽
+// 공중 컷은 몸 가운데(cx, cy)를 몸 가운데 높이(P.y - MOVE.MID)에, 벽 컷은 그림 왼쪽 끝(wallX)을 벽에·맨 아래를 발에 맞춤
+const MOVE = { F: [], k: 0.1, H: 92, MID: 46, DJ: [0.07, 0.3, 0.46], KICK: 0.2, GRAB: 0.09, SIL: ['#2fe6ff', '#ff3d7f'] };
+function moveCut() {
+  if (!MOVE.F.length || P.state !== 'move' || P.ground) return null;
+  if (P.slide) return { i: P.slideT < MOVE.GRAB ? 3 : 4, wall: P.slide };
+  if (P.kickT < MOVE.KICK) return { i: 5 };
+  const [a, b, e] = MOVE.DJ, t = P.djT;
+  if (t < a) return { i: 0, dj: true };
+  if (t < b) return { i: 1, dj: true, rot: 360 * ((t - a) / (b - a)) };   // 공: 앞으로 한 바퀴
+  if (t < e) return { i: 2, dj: true };
+  return null;
+}
+function drawMove(c, mv, x, y, f, gh) {
+  const fr = MOVE.F[mv.i], k = MOVE.k;
+  c.save();
+  if (mv.wall) { c.translate(x + mv.wall * PW, y); c.scale(f, 1); c.translate(-fr.wallX * k, -fr.h * k); }   // 그림 왼쪽 끝 = 벽, 맨 아래 = 발
+  else { c.translate(x, y - MOVE.MID); c.scale(f, 1); c.rotate((mv.rot || 0) * Math.PI / 180); c.translate(-fr.cx * k, -fr.cy * k); }
+  let im = SHADE.on ? fr.lit[variantFor(c, LIGHT.ang)] : fr.img;
+  if (gh) { im = fr.sil[gh.sil]; c.globalAlpha = 0.55 * (1 - gh.t / 0.22); }   // 실루엣: 단색 판
+  c.drawImage(im, 0, 0, fr.w * k, fr.h * k);
+  c.restore();
 }
 // 사망 = 메탈슬러그식 4컷 통그림(art/knight/death/sheet.png, Codex) 갈아 끼우기 — 언더월드 프로토 방식 (사용자 지시 2026-10-29)
 // 맞음 → 무릎 풀림 → 엉덩방아·등 부딪힘 → 큰대자로 누움. 컷은 시트 칸 안 자리(cell)를 그대로 써서 그린 대로 뒤로 밀려나며 쓰러짐
@@ -1055,11 +1089,14 @@ function render() {
     ctx.globalAlpha = 1;
   } else pixLayer(c => {
     for (const gh of P.ghosts) {
+      if (gh.mv) { drawMove(c, gh.mv, gh.x, gh.y, gh.f, gh); continue; }   // 이단 점프 실루엣
       if (gh.frame && FR[gh.frame.i]) drawFrame(c, gh.frame, gh.x, gh.y, gh.f, 0.35 * (1 - gh.t / 0.22));
       else drawRig(c, rig, gh.pose, gh.x, gh.y, gh.f, { ghost: 0.28 * (1 - gh.t / 0.22) });
     }
     if (P.inv > 0 && P.state !== 'dead' && Math.floor(time * 20) % 2) return;   // 맞은 뒤 무적 동안 깜빡임
+    const mv = moveCut();
     if (P.state === 'dead' && DEATH.F.length) drawDeath(c);
+    else if (mv) drawMove(c, mv, P.x, P.y, P.facing);
     else if (P.frame && FR[P.frame.i]) drawFrame(c, P.frame, P.x, P.y, P.facing, 1);
     else if ((P.view === 'front' || P.view === 'back') && frig) drawView(c, P.view, P.x, P.y, P.facing, P.tipL, { flash: P.flash, low: P.low, air: !P.ground, bladeWhite: F.bladeWhite() });
     else drawRig(c, rig, P.pose, P.x, P.y, P.view === 'flip' ? -P.facing : P.facing, { flash: P.flash, bladeWhite: F.bladeWhite() });
@@ -1088,6 +1125,14 @@ function render() {
     ctx.fillStyle = `rgba(255,240,200,${flashScreen * 0.35})`; ctx.fillRect(0, 0, cv.width, cv.height);
     ctx.globalCompositeOperation = 'source-over';
   }
+  // HUD (논리 화면 1280×720 좌표): 하트 · 레벨 배지 · 치즈 막대 · 보스 막대 · 알림 띠, 쉼터에서 연 스킬 노드 창
+  ctx.setTransform(view, 0, 0, view, 0, 0);
+  const nx = LV_XP[G.lv + 1];
+  HUD.drawHUD(ctx, { hp: Math.max(0, P.hp), maxHp: G.maxHp, lv: G.lv, xp: G.xp, xp0: LV_XP[G.lv], xp1: nx, sp: G.sp, time,
+    boss: bossName && BOSS ? { name: bossName, pct: Math.max(0, BOSS.hp / BOSS.max) } : null,
+    banner: bannerT > 0 ? { text: bannerText, a: Math.min(1, bannerT / 0.4) } : null }, W, H);
+  if (SK.skillUI.open) HUD.drawSkills(ctx, G, SK.skillUI, W, H, time);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 // ---------- 무대: 방마다 테마 (city 밤의 뒷골목 · sewer 하수도 · forest 보관용 숲) — art/bg/<테마> ----------
 // (부엌 → 시골 숲 → 2026-10-28 사용자 결정으로 현대 도시 + 팝아트. 인간 도시에서 기사도의 낭만을 꿈꾸는 생쥐)
@@ -1357,16 +1402,7 @@ function tick(dt) {
   impactT -= dt;   // 임팩트 컷은 실제 시간 (슬로우에 안 늘어남)
   fade = Math.max(0, fade - dt * 2.5);
   camY += (Math.min(0, (P.y - GROUND) * 0.55) - camY) * Math.min(1, dt * 5);   // 높이 뛰면 카메라가 반쯤 따라 올라감
-  if (bannerT > 0 && (bannerT -= dt) <= 0) document.getElementById('banner').style.opacity = 0;
-  if (BOSS) { const f = document.getElementById('bossfill'); if (f) f.style.width = (BOSS.hp / BOSS.max * 100) + '%'; }   // 보스 체력 막대
-  // HUD: 체력 하트 · 레벨 · 다음 레벨까지 치즈 막대 (바뀔 때만 다시 씀)
-  const nx = LV_XP[G.lv + 1], hud = `${P.hp}|${G.maxHp}|${G.lv}|${G.xp}|${G.sp}`;
-  if (hud !== tick.hud) {
-    tick.hud = hud;
-    const pct = nx ? Math.min(100, (G.xp - LV_XP[G.lv]) / (nx - LV_XP[G.lv]) * 100) : 100;
-    document.getElementById('stat').innerHTML = `<span style="color:#ff5d73;font-size:20px;letter-spacing:2px">${'♥'.repeat(Math.max(0, P.hp))}<span style="color:#5a4a66">${'♥'.repeat(Math.max(0, G.maxHp - P.hp))}</span></span><br>`
-      + `<b style="color:#f2b33d">Lv${G.lv}</b>${G.sp ? ` <b style="color:#ff3d7f">+${G.sp}P</b>` : ''} <span style="display:inline-block;width:120px;height:8px;background:#2b2a44;border-radius:4px;vertical-align:middle"><span style="display:block;width:${pct}%;height:100%;background:#ffd23a;border-radius:4px"></span></span> <span style="color:#c9c6dc;font-size:12px">${nx ? `${G.xp} / ${nx}` : 'MAX'}</span>`;
-  }
+  if (bannerT > 0) bannerT -= dt;
   if (SK.skillUI.open) {   // 스킬 노드 창: 게임 멈춤, 방향키 이동 · Z/A/Enter 배우기 · ↑/Esc 닫기
     const U = SK.skillUI;
     if (pressed.left) SK.move(-1, 0); if (pressed.right) SK.move(1, 0); if (pressed.down) SK.move(0, 1);
@@ -1375,7 +1411,7 @@ function tick(dt) {
     if (pressed.esc || pressed.dash) U.open = false;
     U.t = U.open ? (U.t || 0) + dt : 0;
     for (const k in pressed) pressed[k] = false;
-    SK.render(G); render(); return;
+    render(); return;
   }
   if (opt.slow) dt *= 0.25;
   if (slowT > 0) { slowT -= dt; dt *= 0.3; }
@@ -1489,6 +1525,12 @@ const loadImg = src => new Promise(ok => { const im = new Image(); im.onload = (
   const spinDir = classic ? '../art/knight/v6spin/frames' : '../art/knight/v7/spin';
   for (let i = 9; i <= 12; i++) { const im = await loadImg(`${spinDir}/f${i}.png`); if (im) { FR[i] = toCanvas(im); FRL[i] = bakePart(FR[i]); } }
   try { Object.assign(FRAME.meta, await (await fetch('../art/knight/v6spin/frames/meta.json')).json()); } catch (e) {}
+  try {   // 이단 점프·벽 6컷: frames/meta.json = 컷마다 크기·몸 가운데(cx, cy)·벽 쪽 끝(wallX)
+    const meta = await (await fetch('../art/knight/move/frames/meta.json')).json(), F6 = [];
+    const tint = (im, col) => { const t = toCanvas(im), x = t.getContext('2d'); x.globalCompositeOperation = 'source-in'; x.fillStyle = col; x.fillRect(0, 0, t.width, t.height); return t; };
+    for (const m of meta.frames) { const im = await loadImg(`../art/knight/move/frames/${m.src}`); if (!im) throw new Error(m.src); const cv0 = toCanvas(im); F6.push({ ...m, img: cv0, lit: bakePart(cv0), sil: MOVE.SIL.map(col => tint(cv0, col)) }); }
+    Object.assign(MOVE, { F: F6, k: MOVE.H / meta.frames[meta.ref ?? 2].h });   // 키 = 기준 컷(펴기) 높이를 리그 키에 맞춤
+  } catch (e) { console.warn('이단 점프·벽 통그림 없음', e); }
   try {   // 사망 4컷: frames/meta.json = 컷마다 칸 안 자리(cell)·크기, 1컷 발(foot) = 기준
     const meta = await (await fetch('../art/knight/death/frames/meta.json')).json(), F4 = [];
     for (const m of meta.frames) { const im = await loadImg(`../art/knight/death/frames/${m.src}`); if (!im) throw new Error(m.src); const cv0 = toCanvas(im); F4.push({ ...m, img: cv0, lit: bakePart(cv0) }); }
@@ -1504,6 +1546,7 @@ const loadImg = src => new Promise(ok => { const im = new Image(); im.onload = (
   try { frig = await loadRig(classic ? '../art/knight/rig_front' : '../art/knight/rig_front_urban'); } catch (e) { console.warn('정면 리그 없음', e); }
   for (const name in THEMES) await loadTheme(name);   // 그림이 없는 테마는 건너뜀 → 숲으로 대신 그림
   await TOAD.load(loadImg); await CENTI.load(loadImg);
+  await HUD.loadUI(loadImg);   // HUD·알림 띠·보스 막대 그림 (art/ui/cut)
   await F.loadDigits('../art/ui/digits/cut');   // 데미지 숫자 글꼴 (없으면 글꼴로 대신 구움)   // 보스 부위 그림 (없으면 임시 도형)
   // 적 · 소품 그림 (Codex, 플랫 → 그릴 때 몸처럼 도트로 구움)
   for (const t in FOE) for (const n of FOE[t].frames) FOE_IMG[t][n] = await loadImg(`../art/enemy/${t}/cut/${n}.png`);
@@ -1531,7 +1574,7 @@ const loadImg = src => new Promise(ok => { const im = new Image(); im.onload = (
     showBanner(`${n.name} — ${n.desc}`, 3);
   };
   loadRoom(0);
-  globalThis.__game = { ROOMS, got, go, loadRoom, G, DEATH, deathSword, get E() { return E; }, get BOSS() { return BOSS; },
+  globalThis.__game = { ROOMS, got, go, loadRoom, G, DEATH, deathSword, MOVE, moveCut, get E() { return E; }, get BOSS() { return BOSS; },
     get CH() { return CH; }, PIX, P, D, A, F, rig, opt, SHADE, LIGHT, shot, stageShot, film, startAttack, startDash, FR, FRAME, drawView, HBOX, playerAttackBox, playerHurtBox, foeHurtBox, enemyAttack, combatCols, spawnFoe, tryHit, get frig() { return frig; }, get D2() { return D; },
     step: (n, dt = 1 / 60) => { manual = true; for (let i = 0; i < n; i++) tick(dt); manual = false; },   // 테스트: 저장 없이 프레임만 넘김
   };

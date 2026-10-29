@@ -1,0 +1,7 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: face.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. Do NOT edit or post-process the image with code. After saving, reply only with the file name.
+
+Attached: ref_head.png = the front view of our hero's head (a tiny chibi mouse knight), ref_char.png = the whole hero (grey-brown fur, big round pink-lined ears, bottle-cap shoulder pad, torn dark-navy cape), ref_ui.png = our HUD sheet. Draw the hero's FACE ICON for the level badge of the HUD: EXACTLY the same character as ref_head.png (same face, fur color, ears, eyes, pink nose, whiskers), but rendered in EXACTLY the pop-art style of ref_ui.png: bold dark-navy outlines, flat colors, a few halftone dots on the cheeks/ears, a small white shine in the eyes.
+
+Pose: head and a tiny bit of the shoulders (the dark-navy cape collar and the edge of the bottle-cap shoulder pad), front view turned very slightly to the right, confident brave little grin, eyebrows determined. Compact and round so it fits inside a CIRCLE: the whole head including the big ears fits inside a circle; nothing sticks out far.
+
+Image: 1024x1024, the face centered and large, wide margins; solid flat MAGENTA background (#FF00FF) everywhere behind it. No circle, no frame, no badge behind the face, no text, no letters, no numbers.

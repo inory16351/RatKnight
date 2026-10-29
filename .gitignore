@@ -6,3 +6,5 @@ __pycache__/
 .codex-finalizer/
 # 생성 로그
 art/**/log*.txt
+# 오피스 임시 잠금 파일
+~$*

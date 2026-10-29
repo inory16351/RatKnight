@@ -28,52 +28,11 @@ export function learn(G, P, id) {
   return true;
 }
 
-// ---------- 창 (HTML 덮개) ----------
-const UI = { open: false, sel: 'root', el: null, onLearn: null };
+// ---------- 창 상태 (그리기는 hud.js drawSkills, 게임 캔버스 위) ----------
+const UI = { open: false, sel: 'root', onLearn: null };
 export const skillUI = UI;
-const CELL = 128, OX = 230, OY = 70;
-function build() {
-  const el = document.createElement('div');
-  el.id = 'skills';
-  el.style.cssText = 'position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(10,8,24,.72);z-index:20;font-family:"Noto Sans KR",sans-serif';
-  el.innerHTML = `<div style="position:relative;width:640px;height:600px;background:#1b1838;border:3px solid #111;box-shadow:8px 8px 0 #ff3d7f;border-radius:6px;overflow:hidden">
-    <div style="position:absolute;inset:0;background-image:radial-gradient(#ffffff14 1.4px,transparent 1.6px);background-size:12px 12px"></div>
-    <div style="position:absolute;left:20px;top:14px;font-family:'Black Han Sans',sans-serif;font-size:30px;color:#ffe14a;text-shadow:3px 3px 0 #ff3d7f,-1px -1px 0 #111">기사 수련 노드</div>
-    <div id="skPts" style="position:absolute;right:20px;top:22px;font-size:15px;color:#fff"></div>
-    <svg id="skLines" width="640" height="600" style="position:absolute;left:0;top:0"></svg>
-    <div id="skNodes"></div>
-    <div id="skInfo" style="position:absolute;left:20px;right:20px;bottom:16px;min-height:62px;padding:10px 14px;background:#111;border:2px solid #2fe6ff;color:#fff;font-size:14px;line-height:1.5"></div>
-  </div>`;
-  document.body.appendChild(el);
-  return el;
-}
-const pos = id => [OX + NODES[id].at[0] * CELL, OY + 30 + NODES[id].at[1] * CELL * 0.72];
-export function render(G) {
-  const el = UI.el || (UI.el = build());
-  el.style.display = UI.open ? 'flex' : 'none';
-  if (!UI.open) return;
-  el.querySelector('#skPts').innerHTML = `Lv<b style="color:#ffe14a">${G.lv}</b> · 노드 포인트 <b style="color:#ff3d7f;font-size:20px">${G.sp}</b>`;
-  let lines = '';
-  for (const id in NODES) for (const k of NODES[id].links) {
-    const [x0, y0] = pos(id), [x1, y1] = pos(k), on = G.skills.has(id) && G.skills.has(k);
-    lines += `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="${on ? '#ffe14a' : '#4a4570'}" stroke-width="${on ? 7 : 5}" stroke-linecap="round"/>`;
-  }
-  el.querySelector('#skLines').innerHTML = lines;
-  el.querySelector('#skNodes').innerHTML = Object.keys(NODES).map(id => {
-    const n = NODES[id], [x, y] = pos(id), st = canLearn(G, id), sel = UI.sel === id;
-    const bg = st === 'learned' ? '#ffe14a' : st === 'ok' ? '#2fe6ff' : '#2b2850', fg = st === 'learned' || st === 'ok' ? '#111' : '#8d88b8';
-    const shape = n.kind === 'act' ? 'border-radius:50%' : 'border-radius:8px;transform:rotate(45deg)';
-    return `<div data-id="${id}" style="position:absolute;left:${x - 34}px;top:${y - 34}px;width:68px;height:68px;cursor:pointer">
-      <div style="position:absolute;inset:0;background:${bg};border:4px solid ${sel ? '#ff3d7f' : '#111'};${shape};box-shadow:${sel ? '0 0 0 4px #fff' : '4px 4px 0 #111'}"></div>
-      <div style="position:absolute;left:-30px;right:-30px;top:72px;text-align:center;font-size:12px;font-weight:700;color:${st === 'learned' ? '#ffe14a' : '#fff'};text-shadow:0 1px 2px #000">${n.name}</div>
-      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Black Han Sans',sans-serif;font-size:18px;color:${fg}">${n.kind === 'act' ? '技' : n.kind === 'stat' ? '+' : '★'}</div>
-    </div>`;
-  }).join('');
-  el.querySelectorAll('[data-id]').forEach(d => d.onclick = () => { UI.sel = d.dataset.id; UI.onLearn?.(UI.sel); });
-  const n = NODES[UI.sel], st = canLearn(G, UI.sel);
-  const why = { learned: '배움', ok: 'Z / A / Enter 로 배우기', locked: '이어진 노드를 먼저 배워야 함', level: `Lv${n.lv} 필요`, point: '노드 포인트 부족' }[st];
-  el.querySelector('#skInfo').innerHTML = `<b style="color:#ffe14a;font-size:16px">${n.name}</b> <span style="color:#2fe6ff">${n.kind === 'act' ? '기술' : n.kind === 'stat' ? '능력치' : ''}</span> · 요구 Lv${n.lv}<br>${n.desc}<br><span style="color:${st === 'ok' ? '#2fe6ff' : '#ff9a1f'}">${why}</span> <span style="color:#8d88b8;float:right">방향키 이동 · Esc / C 닫기</span>`;
-}
+const CELL = 150, ROW = 106, OX = 320, OY = 112;   // 창(640×600) 안 노드 자리 (이름 글자가 아래 줄 선과 안 겹치게 줄 간격 넉넉히)
+export const pos = id => [OX + NODES[id].at[0] * CELL, OY + NODES[id].at[1] * ROW];
 // 방향키로 그 쪽에 가장 가까운 노드로 이동
 export function move(dx, dy) {
   const [x0, y0] = pos(UI.sel);

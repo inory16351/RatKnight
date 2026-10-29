@@ -32,6 +32,16 @@ http.createServer((req, res) => {
     req.on('end', () => { fs.writeFileSync(path.join(dir, name), Buffer.concat(chunks)); res.end('ok'); });
     return;
   }
+  // 단일 HTML 빌드 결과 저장: POST /__dist?name=파일.html → dist/ (tools/build_single.html 이 보냄)
+  if (req.method === 'POST' && req.url.startsWith('/__dist')) {
+    const name = path.basename(new URL(req.url, 'http://x').searchParams.get('name') || 'ratknight_proto.html');
+    const dir = path.join(ROOT, 'dist');
+    fs.mkdirSync(dir, { recursive: true });
+    const chunks = [];
+    req.on('data', (c) => chunks.push(c));
+    req.on('end', () => { const b = Buffer.concat(chunks); fs.writeFileSync(path.join(dir, name), b); res.end(`ok dist/${name} ${(b.length / 1048576).toFixed(1)}MB`); });
+    return;
+  }
   let p = decodeURIComponent(req.url.split('?')[0]);
   if (p === '/') p = '/web/index.html';
   const file = path.normalize(path.join(ROOT, p));

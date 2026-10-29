@@ -1,0 +1,17 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: sheet.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. Do NOT edit or post-process the image with code. After saving, reply only with the file name.
+
+Attached: ref_ui.png = the HUD sheet of our 2D action game (pop-art city style: bold dark-navy outlines, flat saturated colors, a few halftone dots, small sparkles). ref_char.png = the hero, a tiny chibi mouse knight (grey-brown fur, big pink ears, bottle-cap shoulder pad, torn navy cape, one-handed knight sword with a round-holed cross guard). Draw in EXACTLY the same style as ref_ui.png.
+
+Draw 8 SKILL ICONS for the hero's skill-node tree. Each icon is a single bold object or tiny scene, centered, readable when shrunk to 48x48 pixels: simple big shapes, thick dark-navy outline, flat colors (yellow #ffe14a, hot pink #ff3d7f, cyan #2fe6ff, cream, navy), at most a few halftone dots. NO frame, NO circle or badge behind the icon, NO text, NO letters, NO numbers.
+
+Icons, left to right, top to bottom:
+1. KNIGHT'S OATH: the hero's sword standing point-down with a small crown above it and a few sparkles.
+2. PLUNGE: the sword pointing straight DOWN with a big downward arrow and a cracked impact burst at the bottom.
+3. SHARPEN: a sword blade with a whetstone and bright sparks flying from the edge.
+4. BOTTLE-CAP ARMOR: a crimped metal bottle cap used as a little shield, with a small pink heart and a plus sign shape made of shapes (no text).
+5. CHARGED DASH: the sword pointing forward to the RIGHT with speed streaks behind it and a glowing energy ball gathering at the hilt.
+6. WALL JUMP: a brick wall on the left with a small boot kicking off it and a curved arrow jumping up and away to the upper right.
+7. KNIGHT'S STRIKE: two crossed swords with a big pop-art impact star behind them.
+8. CAN-PIECE BREASTPLATE: a small breastplate made of a crushed soda can (aluminium with a colored stripe) with a pink heart on it.
+
+Image: 1536x768, an exact grid of 4 columns x 2 rows (each cell 384x384), one icon per cell, centered, with wide margins; icons must NOT touch or cross cell borders. All icons the same visual size. Solid flat MAGENTA background (#FF00FF) everywhere. No grid lines, no labels, no shadow on the background.

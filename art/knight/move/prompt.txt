@@ -1,0 +1,19 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: sheet.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. Do NOT edit, clean or post-process the image with code or scripts: save the generated image as-is.
+
+Attached: ref_char.png = the HERO of our 2D action game, a tiny chibi mouse knight. ref_death.png = the same hero drawn in our current animation style and proportions: match THESE proportions and this style exactly (big head, big round pink-lined ears, grey-brown fur, bottle-cap shoulder pad, grey chest plate, torn dark-navy cape, teal-and-cream sash, bandaged wrists and boots, long pink tail). ref_sword.png = his sword: a straight one-handed knight sword with a NAVY blade with pink chips, a cream cross guard with two round holes, navy grip and a round pommel. He holds THIS sword in his right hand in every frame.
+Style: completely FLAT, one solid color per area, NO shading, NO highlight, NO gradient, NO outlines, NO texture (shading and pixelation are added later by code). Cute pop-art comic mood, dynamic action poses.
+
+Image spec:
+- 1536x1024, solid flat MAGENTA background (#FF00FF) everywhere: no floor, no ground line, no wall drawn, no shadow, no glow, no motion lines, no effects, no text, no numbers, no grid lines.
+- An exact grid of 3 columns x 2 rows (each cell 512x512). One drawing per cell, centered, with a clear magenta margin; drawings must NOT touch or cross cell borders. ALL SIX frames at the SAME SCALE (the same character size as each other).
+- PURE SIDE VIEW, his face toward the RIGHT in every frame.
+
+Row 1 = DOUBLE JUMP in mid-air (a springy front flip):
+1. TUCK: just kicked off the air, knees pulled up high to the chest, back rounding forward, sword held close along the body, cape and tail flowing down below him.
+2. BALL: curled into a tight round ball mid front-flip (seen from the side, head tucked to the knees, arms hugging the shins, sword tucked flat along the back), ears folded, cape wrapped around. Compact and round.
+3. UNFOLD: opening out of the flip at the top of the jump: legs stretching down, free arm thrown out, sword arm swinging the sword out to the side, cape and ears flaring up above him.
+
+Row 2 = WALL CLING. An invisible vertical wall is just to the LEFT of the character in these three frames: his back/left side, left hand and left boot press flat against that invisible vertical line at the left edge of his body; he faces RIGHT, away from the wall.
+4. GRAB: just slammed against the wall: squished a little, left palm and left boot flat on the wall, knees bent, ears and cape bouncing, sword hand out to the right for balance.
+5. SLIDE: sliding down the wall: crouched, left hand and left boot dragging on the wall, other knee up, cape and ears blown UPWARD by the slide, looking down-right, determined.
+6. KICK-OFF: pushing off the wall with both legs, body launching up and to the right at a diagonal, arms back, sword trailing, cape stretched behind toward the wall.

@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>기사쥐 단일 HTML 빌드</title>
+<style>
+  body { margin: 0; padding: 16px; background: #14172a; color: #e8e6f4; font: 14px/1.6 'Noto Sans KR', sans-serif; }
+  #log { white-space: pre-wrap; font-family: monospace; }
+  iframe { position: fixed; left: -3000px; top: 0; width: 1280px; height: 720px; border: 0; }
+</style>
+</head>
+<body>
+<b>기사쥐 단일 HTML 빌드</b> — 서버 없이 여는 dist/ratknight_proto.html
+<div id="log"></div>
+<iframe id="game"></iframe>
+<script type="module" src="build_single.js"></script>
+</body>
+</html>

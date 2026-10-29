@@ -13,7 +13,7 @@
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: 'Noto Sans KR', sans-serif; overflow: hidden; }
   #wrap { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
   canvas { display: block; background: #2a2f52; }
-  #hud { position: fixed; left: 12px; top: 10px; font-size: 13px; line-height: 1.6; pointer-events: none; text-shadow: 0 1px 2px #000; }
+  #hud { position: fixed; left: 12px; bottom: 10px; font-size: 13px; line-height: 1.6; pointer-events: none; text-shadow: 0 1px 2px #000; }
   #hud b { color: var(--gold); }
   #panel { position: fixed; right: 10px; top: 10px; width: 210px; background: rgba(29,33,64,.92); border: 1px solid #333a6e; border-radius: 8px; padding: 10px; font-size: 12px; }
   #panel h3 { margin: 0 0 6px; font-size: 13px; color: var(--gold); }
@@ -30,13 +30,8 @@
   <b>← →</b> 이동 · <b>Z / Space</b> 점프 · <b>A / X / J</b> 베기 (3타 · 공중 세로 회전 · 공중 ↓ 내려찍기) · <b>F / 우클릭</b> 짧게 대시 · 길게 충전 돌진 · <b>C / Shift</b> 대시<br>
   <b>↑</b> 쉼터에서 스킬 노드 · <b>H</b> 피격 · <b>K</b> 사망 · <b>T</b> 슬로우 · <b>G</b> 셰이더 · <b>V</b> 통그림 비교
 </div>
-<div id="stat" style="position:fixed;left:12px;top:58px;font-size:15px;line-height:1.5;text-shadow:0 1px 3px #000;pointer-events:none"></div>
 <div id="room"style="position:fixed;left:50%;top:10px;transform:translateX(-50%);font-size:15px;font-weight:700;color:var(--gold);text-shadow:0 1px 3px #000;pointer-events:none"></div>
-<div id="bossbar" style="position:fixed;left:50%;bottom:22px;transform:translateX(-50%);width:min(640px,70vw);opacity:0;transition:opacity .4s;pointer-events:none;text-align:center;text-shadow:0 1px 3px #000">
-  <div id="bossname" style="font-size:14px;font-weight:700;color:#ffd23a;margin-bottom:4px">하수도의 왕 · 개굴대왕</div>
-  <div style="height:12px;background:#2b2a44;border:2px solid #f2b33d;border-radius:7px;overflow:hidden"><div id="bossfill" style="height:100%;width:100%;background:#e0607e;transition:width .15s"></div></div>
-</div>
-<div id="banner"style="position:fixed;left:50%;bottom:64px;transform:translateX(-50%);padding:10px 18px;background:rgba(20,23,42,.88);border:1px solid var(--gold);border-radius:8px;font-size:15px;opacity:0;transition:opacity .4s;pointer-events:none"></div>
+<!-- 하트·레벨·경험치·보스 막대·알림 띠·스킬 노드 창은 게임 캔버스 위에 그림 (src/hud.js) -->
 <div id="panel">
   <h3>모션 확인</h3>
   <button data-act="slash1">1타 가로 베기</button>

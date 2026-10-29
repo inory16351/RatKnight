@@ -1,0 +1,14 @@
+Use your built-in image generation tool to create ONE image and save it as PNG to: sheet.png (in the current working directory). Do not write code to draw it; it must be a generated illustration. Do NOT edit or post-process the image with code. After saving, reply only with the file name.
+
+Attached: ref_ui.png = the HUD sheet of our 2D action game, ref_icons.png = the skill icons that will sit INSIDE these slots. Draw in EXACTLY the same pop-art city style: bold dark-navy outlines, flat saturated colors, a few halftone dots, tiny sparkles, small metal rivets.
+
+Draw 6 empty SKILL-NODE SLOTS (frames) for a skill tree. Each slot has a big EMPTY flat dark-navy (#1b1838) center area where a separate icon will be placed later: the center must be completely plain dark navy, nothing drawn in it. Seen straight from the front, symmetric.
+
+Row 1 = ROUND slots (for action skills): a round metal bottle-cap style ring frame.
+Row 2 = DIAMOND slots (for stat skills): a diamond (square rotated 45 degrees) badge frame with small corner studs.
+Columns (same order in both rows):
+1. LOCKED: dull grey-violet frame, a tiny padlock at the bottom edge of the frame, no glow.
+2. AVAILABLE: bright cyan (#2fe6ff) frame with a few white sparkles around it, inviting.
+3. LEARNED: shiny yellow-gold (#ffe14a) frame with a hot-pink (#ff3d7f) offset shadow and a tiny crown on top of the frame.
+
+Image: 1536x1024, an exact grid of 3 columns x 2 rows (each cell 512x512), one slot per cell, centered, all slots the SAME SIZE (about 330 px wide), wide margins; slots must NOT touch or cross cell borders. Solid flat MAGENTA background (#FF00FF) everywhere outside the slots. No text, no letters, no numbers, no icons inside the slots, no grid lines, no shadow on the background.
