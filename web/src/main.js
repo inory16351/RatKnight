@@ -1215,6 +1215,7 @@ function render() {
 
   // 뒤쪽 이펙트
   pixLayer(c => { F.drawSprites(c, false); F.drawTrails(c, time, false); F.drawFlips(c, false); });
+  if (PREVIEW.on && PREVIEW.onion) drawOnion();   // 캐릭터 테스트: 이전 프레임 파랑 · 다음 프레임 핑크 (캐릭터 뒤)
   // (빛 번짐 drawGlow 는 사용자 요청으로 뺌 — 납작하게)
 
 
@@ -1233,7 +1234,6 @@ function render() {
     }
     if (P.inv > 0 && P.state !== 'dead' && Math.floor(time * 20) % 2) return;   // 맞은 뒤 무적 동안 깜빡임
     if (P.phaseT > PHASE.T * 0.5) return;   // 벽통과: 도착 직후 잠깐 안 보임
-    if (PREVIEW.on && PREVIEW.onion) for (const d of [-1, 1]) { const q = previewPoseAt(PREVIEW.t + d / TU.FPS); if (q) drawRig(c, rig, q, P.x, P.y, P.facing, { ghost: 0.22 }); }
     drawKnight(c);
     if (COMPARE.on && PREVIEW.on) drawCompareB(c);   // 저장본 비교: B 를 옆(또는 겹쳐)에
   }, 24);   // 몸도 도트로 (색 약 10단계)
@@ -1555,7 +1555,7 @@ function captureAt(pose) {
 function liveRig(which, part, fn) {
   const R = which === 'front' ? frig : rig, a = R?.def.parts[part], p = R?.[part]; if (!a || !p) return;
   fn(a);
-  const K = R.K; p.px = a.pivot[0] * K; p.py = a.pivot[1] * K;
+  const K = R.K; p.px = a.pivot[0] * K; p.py = a.pivot[1] * K; p.adj = a.adj;
   for (const k in a.joints) p.j[k] = [(a.joints[k][0] - a.pivot[0]) * K, (a.joints[k][1] - a.pivot[1]) * K];
   if (which === 'side' && R.thigh && R.shin && R.hips) R.hipH = (R.thigh.j.knee[1] + R.shin.j.sole[1] + (R.hips.j.hipN?.[1] ?? 0)) / SS;
 }
@@ -1577,8 +1577,11 @@ async function applyBundle(b = {}) {
   Object.assign(F.FXCOL, structuredClone(F.FXCOL_DEFAULT), structuredClone(b.fx?.col || {}));
   for (const k in F.DMG_STYLE) F.DMG_STYLE[k] = [...(b.fx?.dmg?.[k] || F.DMG_DEFAULT[k])];
   F.restoreImgs(); for (const k in FXIMG) delete FXIMG[k];
-  for (const [k, src] of Object.entries(b.fx?.img || {})) { FXIMG[k] = src; await F.replaceImg(k, '../' + src); }
-  await setRigPatch('side', b.rig?.side || {}); await setRigPatch('front', b.rig?.front || {});
+  for (const [k, src] of Object.entries(b.fx?.img || {})) { FXIMG[k] = src; try { await F.replaceImg(k, '../' + src); } catch (e) { delete FXIMG[k]; } }
+  for (const which of ['side', 'front']) {
+    try { await setRigPatch(which, b.rig?.[which] || {}); }
+    catch (e) { console.error(e); globalThis.__onError?.(new Error(`${which === 'side' ? '옆' : '정면'} 리그 수정을 못 불러와 원래 리그로 둠 (${e.message})`)); await setRigPatch(which, {}); }
+  }
 }
 // 비교: 미리보기에서 B 저장본의 자세·리그로 한 명 더 (side = 옆에 나란히 · overlay = 같은 자리에 반투명)
 const COMPARE = { on: false, mode: 'side', gap: 230, b: null, rig: null, frig: null };
@@ -1615,6 +1618,20 @@ function previewApply(key, t) {
   if (c) { P.state = 'attack'; P.atk = c; P.atkName = key; P.atkFrom = A.IDLE; }
   else P.state = { dash: 'dash', parry: 'parry', sjump: 'sjump', hurt: 'hurt', death: 'dead' }[key] || 'move';
   P.ground = !(c?.airOnly || key === 'plunge'); P.y = P.ground ? groundBelow(P.x, GROUND) : GROUND - 160; P.t = c ? t : t / motionScale(key); P.vx = 0; P.vy = 0;   // 공격 아닌 동작: 실제 시간 → 동작 시계
+}
+// 어니언 스킨: 앞뒤 프레임 자세를 단색 실루엣으로 한 장에 그려 40% 로 얹음 (부위가 겹쳐도 진해지지 않게)
+let onionBuf = null;
+const ONION = { alpha: 0.4 };
+function drawOnion() {
+  onionBuf ||= document.createElement('canvas');
+  if (onionBuf.width !== cv.width || onionBuf.height !== cv.height) { onionBuf.width = cv.width; onionBuf.height = cv.height; }
+  const o = onionBuf.getContext('2d'), m = ctx.getTransform(), f = P.view === 'flip' ? -P.facing : P.facing;
+  for (const [d, col] of [[-1, 'b'], [1, 'p']]) {
+    const t = PREVIEW.t + d / TU.FPS, q = previewPoseAt(t); if (!q) continue;
+    o.setTransform(1, 0, 0, 1, 0, 0); o.clearRect(0, 0, onionBuf.width, onionBuf.height); o.setTransform(m);
+    drawRig(o, rig, q, P.x, P.y, f, { ghost: 1, ghostCol: col, adj: TU.radjAt(PREVIEW.key, t) });
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = ONION.alpha; ctx.drawImage(onionBuf, 0, 0); ctx.restore();
+  }
 }
 function previewPoseAt(t) {
   if (t < 0 || t > motionLen(PREVIEW.key)) return null;
@@ -1744,8 +1761,8 @@ function sampleBlade(t0, t1) {
 let last = performance.now(), manual = false;
 function frame(now) {
   let dt = Math.min(0.05, (now - last) / 1000); last = now;
-  if (!manual) tick(dt);
-  requestAnimationFrame(frame);
+  requestAnimationFrame(frame);   // 오류가 나도 다음 프레임은 계속 (예전엔 tick 에서 오류 한 번이면 화면이 멈춤)
+  if (!manual) try { tick(dt); } catch (e) { console.error(e); if (!frame.warned) { frame.warned = true; globalThis.__onError?.(e); setTimeout(() => frame.warned = false, 3000); } }
 }
 function tick(dt) {
   for (let i = combatCols.length - 1; i >= 0; i--) if (combatCols[i].until < time) combatCols.splice(i, 1);

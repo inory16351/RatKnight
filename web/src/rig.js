@@ -132,6 +132,7 @@ export function rebake(P) {
     p.farFlat = tint(p.img, 'rgba(30,26,70,0.28)');
     p.white = tint(p.img, '#ffffff');                              // 피격 번쩍
     p.ghost = tint(p.img, 'rgb(70,110,230)');                      // 대시 잔상 (남색)
+    p.ghostB = tint(p.img, 'rgb(47,168,255)'); p.ghostP = tint(p.img, 'rgb(255,61,127)');   // 어니언 스킨: 이전 프레임 파랑 · 다음 프레임 핑크
   }
 }
 
@@ -202,7 +203,7 @@ export function drawRig(ctx, P, pose, ax, ay, facing, opt = {}) {
   const put = (p, far) => {
     if (opt.capture) opt.capture.push({ p, far, m: ctx.getTransform(), j: Object.fromEntries(Object.keys(p.j).map(k => [k, J(p, k)])) });   // 본·관절 보기: 부위 축 자리의 변환 기록 (캐릭터 테스트 도구)
     const a = mergeAdj(p.adj, opt.adj?.[p.name]); if (a) { ctx.save(); ctx.translate((a.dx || 0) * p.K, (a.dy || 0) * p.K); ctx.rotate(R(-(a.rot || 0))); ctx.scale(a.sc || 1, a.sc || 1); }   // 부위 그림만 옮기기·돌리기·키우기 (리그 덮어쓰기 + 프레임별)
-    if (opt.ghost) { ctx.globalAlpha = opt.ghost; ctx.drawImage(p.ghost, -p.px, -p.py); ctx.globalAlpha = 1; }
+    if (opt.ghost) { ctx.globalAlpha = opt.ghost; ctx.drawImage(opt.ghostCol === 'p' ? p.ghostP : opt.ghostCol === 'b' ? p.ghostB : p.ghost, -p.px, -p.py); ctx.globalAlpha = 1; }
     else {
       const im = SHADE.on ? (far ? p.farLit : p.lit)[variantFor(ctx, LIGHT.ang)] : (far ? p.farFlat : p.img);
       ctx.drawImage(im, -p.px, -p.py);
@@ -308,7 +309,7 @@ export function drawFront(ctx, P, pose, ax, ay, facing, view, opt = {}) {
     if (!p) return;
     if (opt.capture) opt.capture.push({ p, far: false, m: ctx.getTransform(), j: Object.fromEntries(Object.keys(p.j).map(k => [k, J(p, k)])) });
     const a = mergeAdj(p.adj, opt.adj?.[p.name]); if (a) { ctx.save(); ctx.translate((a.dx || 0) * p.K, (a.dy || 0) * p.K); ctx.rotate(R(-(a.rot || 0))); ctx.scale(a.sc || 1, a.sc || 1); }
-    if (opt.ghost) { ctx.globalAlpha = opt.ghost; ctx.drawImage(p.ghost, -p.px, -p.py); ctx.globalAlpha = 1; }
+    if (opt.ghost) { ctx.globalAlpha = opt.ghost; ctx.drawImage(opt.ghostCol === 'p' ? p.ghostP : opt.ghostCol === 'b' ? p.ghostB : p.ghost, -p.px, -p.py); ctx.globalAlpha = 1; }
     else {
       const im = SHADE.on ? p.lit[variantFor(ctx, LIGHT.ang)] : p.img;
       ctx.drawImage(im, -p.px, -p.py);

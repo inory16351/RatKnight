@@ -6,6 +6,8 @@ const h = (tag, attrs = {}, ...kids) => { const e = document.createElement(tag);
 const toast = t => { const e = $('#toast'); e.textContent = t; e.style.display = 'block'; clearTimeout(toast.h); toast.h = setTimeout(() => e.style.display = 'none', 1600); };
 
 while (!globalThis.__game) await new Promise(r => setTimeout(r, 50));
+globalThis.__onError = e => toast('오류: ' + (e?.message || e));   // 게임 화면 오류를 알림으로 (화면은 계속 돎)
+addEventListener('unhandledrejection', e => toast('오류: ' + (e.reason?.message || e.reason)));
 const g = __game, { TU, ABIL, P, G, PREVIEW, opt } = g;
 const T = TU.TUNE;
 const live = { b: null, a: null };   // 실제 조작에 B 저장본을 잠깐 적용 중이면 b = 이름, a = 되돌릴 편집본
@@ -295,7 +297,8 @@ function renderRig() {
     const fr = TU.frameData(PREVIEW.key, cur)?.radj?.[rigPart] || {}, setF = (k, v) => { const f = frameStart(); f.radj[rigPart] = { dx: 0, dy: 0, rot: 0, sc: 1, len: 1, ...(f.radj[rigPart] || {}), [k]: v }; TU.prune(); save(); renderRig(); renderStrip(); };
     const n2 = (v, st, on) => h('input', { type: 'number', step: st, value: Math.round(v * 100) / 100, onchange: e => on(+e.target.value) });
     el.append(h('h4', {}, `이 프레임만 (${PREVIEW.key} · ${cur}프레임) — 부위 그림 위치`));
-    el.append(h('div', { class: 'row' }, '본 길이 ×', n2(fr.len || 1, 0.05, v => setF('len', v)), h('span', { class: 'hint' }, '붙은 자식이 따라감 · 화면에서 Shift + 관절 끌기')));
+    el.append(h('div', { class: 'row' }, '본 길이 ×', n2(fr.len || 1, 0.05, v => setF('len', v)), h('span', { class: 'hint' }, '붙은 자식이 따라감')));
+    el.append(h('div', { class: 'row' }, '파츠 크기 ×', n2(fr.len || 1, 0.05, v => { const f = frameStart(); f.radj[rigPart] = { dx: 0, dy: 0, rot: 0, sc: 1, len: 1, ...(f.radj[rigPart] || {}), len: v, sc: v }; TU.prune(); save(); renderRig(); renderStrip(); }), h('span', { class: 'hint' }, '본 길이 + 그림 배율 함께')));
     el.append(h('div', { class: 'row' }, '그림 x', n2(fr.dx || 0, 1, v => setF('dx', v)), 'y', n2(fr.dy || 0, 1, v => setF('dy', v)), '각도', n2(fr.rot || 0, 1, v => setF('rot', v)), '배율', n2(fr.sc || 1, 0.01, v => setF('sc', v)),
       h('button', { class: 'b warn', onclick: () => { const f = TU.frameData(PREVIEW.key, cur); if (f?.radj) delete f.radj[rigPart]; TU.prune(); save(); renderRig(); renderStrip(); } }, '지우기')));
     el.append(h('p', { class: 'hint' }, '아래 [프레임별] 상태에서 화면의 관절을 끌면 이 프레임 자세(각도) 키가 찍힘. 아래 전체 리깅 값은 모든 동작에 적용됨.'));
@@ -318,7 +321,7 @@ function renderRig() {
   el.append(h('div', { class: 'row' }, 'x', num(adj.dx || 0, 1, v => setAdj('dx', v)), 'y', num(adj.dy || 0, 1, v => setAdj('dy', v)), '각도', num(adj.rot || 0, 1, v => setAdj('rot', v)), '배율', num(adj.sc || 1, 0.01, v => setAdj('sc', v))));
   if (Object.keys(a.joints || {}).length) {   // 본 길이: 축에서 관절까지 거리를 한꺼번에 늘이고 줄임 (방향은 그대로) · 그림도 같이 = 그림 배율에도 곱함
     const f = h('input', { type: 'number', step: 0.05, value: 1 }), withImg = h('input', { type: 'checkbox' });
-    el.append(h('div', { class: 'row' }, '본 길이 ×', f, h('label', {}, withImg, '그림도 같이'), h('button', { class: 'b', onclick: () => {
+    el.append(h('div', { class: 'row' }, '본 길이 ×', f, h('label', {}, withImg, '그림도 같이 (= 파츠 크기)'), h('button', { class: 'b', onclick: () => {
       const k = +f.value || 1, J = (q().joints ??= {});
       for (const [j, v] of Object.entries(a.joints)) J[j] = [a.pivot[0] + (v[0] - a.pivot[0]) * k, a.pivot[1] + (v[1] - a.pivot[1]) * k];
       if (withImg.checked) q().adj = { ...(q().adj || {}), sc: (a.adj?.sc || 1) * k };
@@ -396,7 +399,7 @@ async function renderFile() {
   ta.value = JSON.stringify(g.captureBundle(), null, 1);
   el.append(ta, h('div', { class: 'row' },
     h('button', { class: 'b', onclick: async () => { try { await g.applyBundle(JSON.parse(ta.value)); rigEdit.side = rigEdit.front = null; save(); renderAll(); toast('적용함'); } catch (e) { toast('JSON 오류'); } } }, '이 JSON 적용'),
-    h('button', { class: 'b warn', onclick: async () => { if (confirm('편집 중인 것(키·이펙트·프레임·리깅)을 전부 기본값으로?')) { await g.applyBundle({}); rigEdit.side = rigEdit.front = null; save(); renderAll(); } } }, '전부 기본값으로')));
+    h('button', { class: 'b warn', onclick: async () => { if (confirm('편집 중인 것(키·이펙트·프레임·리깅)을 전부 기본값으로?')) { await g.applyBundle({}); rigEdit.side = rigEdit.front = null; setPreview(false); save(); renderAll(); renderBar(); toast('전부 기본값으로 — 실제 조작으로 돌아감'); } } }, '전부 기본값으로')));
 }
 
 // ---------- 비교 ----------
@@ -449,7 +452,8 @@ async function startCmp() { if (!cmpB) return; await g.setCompare(await loadSave
 // 관절(원) 끌기 = 그 관절 자리 옮김(붙은 부위가 따라 움직임) · 축(네모)이나 그림 끌기 = 축 자리 바꿈(그림이 관절에 대해 움직임)
 // 끄는 동안은 리그를 바로 고치고(liveRig), 놓으면 리그 덮어쓰기에 적어 다시 만듦. 확대 뷰: 휠 = 배율, 가운데 버튼 끌기 = 화면 이동
 const CVW = g.CHARVIEW, cvEl = document.getElementById('cv');
-const EDIT = { scope: 'rig', kids: true };
+const EDIT = { scope: 'rig', kids: true, act: 'move' };   // act = 끌기 동작: rotate 회전 · move 이동 · length 본 길이 · scale 파츠 크기 (본 + 그림)
+const ACTS = { rotate: '회전', move: '이동', length: '본 길이', scale: '파츠 크기 (본 + 그림)' };
 // 아래 독 = 보기 · 동작 · 재생 막대 / 프레임 박스(타임라인 칸에 맞춤) / 타임라인
 const dock = h('div', { id: 'dock' }), bar = h('div', { id: 'viewbar' }), bar2 = h('div', { id: 'viewbar2' }), strip = h('div', { id: 'strip' }), tl = h('canvas', { id: 'tl' });
 dock.append(bar, bar2, strip, tl); document.body.append(dock);
@@ -514,7 +518,7 @@ setInterval(drawTL, 50);
 const badge = h('div', { id: 'badge' }); document.body.append(badge);
 setInterval(() => {
   const k = PREVIEW.on ? PREVIEW.key : g.motionKey(), t = PREVIEW.on ? PREVIEW.t : g.fclock(), ph = k && phaseOf(k, t);
-  const parts = [PREVIEW.on ? chip('미리보기', '#f2b33d') : chip('실제 조작', '#7ee2a8'), k ? h('b', {}, `${MOTION_NAME[k] || k} · ${TU.frameOf(t)}f`) : h('span', { class: 'hint' }, '대기'), ph ? chip(PHASE[ph][0], PHASE[ph][1]) : ''];
+  const parts = [PREVIEW.on ? chip('미리보기 · 게임 멈춤 (조작 키 = 실제 조작)', '#f2b33d') : chip('실제 조작', '#7ee2a8'), k ? h('b', {}, `${MOTION_NAME[k] || k} · ${TU.frameOf(t)}f`) : h('span', { class: 'hint' }, '대기'), ph ? chip(PHASE[ph][0], PHASE[ph][1]) : ''];
   if (CVW.bones) parts.push(chip(EDIT.scope === 'frame' ? '끌기: 이 프레임' : '끌기: 전체 리깅', EDIT.scope === 'frame' ? '#ff3d7f' : '#f2b33d'), chip(EDIT.kids ? '자식 같이' : '자식 제자리', '#2fe6ff'), CVW.sel ? h('span', {}, `부위: ${g.HIER[CVW.rig || 'side']?.[CVW.sel]?.name || CVW.sel}`) : '');
   if (live.b) parts.push(chip(`B 적용 중: ${live.b}`, '#ff5d73'));
   badge.replaceChildren(...parts.filter(Boolean));
@@ -534,6 +538,12 @@ const scrubTo = e => { const r = tl.getBoundingClientRect(), { n, x0, fw } = tlG
 tl.addEventListener('mousedown', e => { scrub = true; scrubTo(e); });
 addEventListener('mousemove', e => { if (scrub) scrubTo(e); });
 addEventListener('mouseup', () => { if (scrub) { scrub = false; renderMo(); renderBar(); } });
+// 미리보기(게임 멈춤) 중 게임 조작 키를 누르면 바로 실제 조작으로
+addEventListener('keydown', e => {
+  if (!PREVIEW.on || capture || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+  const a = TU.actionOf(e.code);
+  if (['left', 'right', 'jump', 'atk', 'dash', 'heavy', 'parry', 'sjump', 'phase'].includes(a)) { setPreview(false); renderBar(); toast('실제 조작으로 전환 (미리보기 = 게임 멈춤)'); }
+});
 // 단축키: , . = 앞뒤 프레임 · [ ] = 앞뒤 키프레임 (입력칸 밖에서)
 addEventListener('keydown', e => {
   if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || capture) return;
@@ -551,11 +561,12 @@ function renderBar() {
     h('div', { class: 'grp' }, h('span', { class: 'gl' }, '표시'),
       tg('본·관절', CVW.bones, v => CVW.bones = v, '원 = 관절 · 네모 = 축 · 쐐기 = 본(부모 → 자식)'),
       CVW.bones ? [tg('이름', CVW.labels, v => CVW.labels = v), h('input', { type: 'range', class: 'sz', min: 0.5, max: 2.5, step: 0.1, value: CVW.size, title: '본·관절 크기', oninput: e => CVW.size = +e.target.value })] : '',
-      tg('앞뒤 프레임', PREVIEW.onion, v => PREVIEW.onion = v, '미리보기에서 앞뒤 프레임을 반투명으로'),
+      tg('어니언 스킨', PREVIEW.onion, v => PREVIEW.onion = v, '미리보기에서 이전 프레임 = 파랑, 다음 프레임 = 핑크 (40%)'),
       tg('판정 도형', opt.colliders, v => opt.colliders = v), tg('도트화', g.PIX.on, v => g.PIX.on = v)),
     h('div', { class: 'grp' + (CVW.bones ? '' : ' off'), title: CVW.bones ? '' : '본·관절을 켜면 화면에서 끌어 고칠 수 있음' }, h('span', { class: 'gl' }, '끌어서 고치기'),
-      pick('범위', [['rig', '전체 리깅 (모든 동작)'], ['frame', '이 프레임만 (키)']], EDIT.scope, v => { EDIT.scope = v; if (v === 'frame') { CVW.bones = true; if (!PREVIEW.on) setPreview(true); } renderBar(); renderRig(); },
+      pick('범위', [['rig', '전체 리깅 (모든 동작)'], ['frame', '이 프레임만 (키)']], EDIT.scope, v => { EDIT.scope = v; EDIT.act = v === 'frame' ? 'rotate' : 'move'; if (v === 'frame') { CVW.bones = true; if (!PREVIEW.on) setPreview(true); } renderBar(); renderRig(); },
         '전체 리깅 = 리그 자체를 고침 · 이 프레임만 = 관절 끌기 = 그 부위 돌리기 · Shift + 관절 끌기 = 본 길이 · Alt 끌기 = 그림 위치'),
+      pick('동작', Object.entries(ACTS), EDIT.act, v => { EDIT.act = v; renderBar(); renderRig(); }, '끌어서 할 일 (Shift = 본 길이 · Alt = 이동 으로 잠깐 바꿀 수 있음)'),
       pick('자식', [['with', '같이 움직임'], ['stay', '제자리 (개별)']], EDIT.kids ? 'with' : 'stay', v => { EDIT.kids = v === 'with'; renderBar(); })));
   // 아랫줄: 동작 · 상태 · 재생
   const ms = h('select', { onchange: e => { PREVIEW.key = e.target.value; cur = 0; PREVIEW.t = 0; PREVIEW.on = true; renderMo(); renderBar(); } },
@@ -611,13 +622,14 @@ cvEl.addEventListener('mousedown', e => {
   const which = CVW.rig, R = which === 'front' ? g.frig : g.rig, part = hit.c.name, a = R.def.parts[part], H = g.HIER[which] || {};
   rigWhich = which; rigPart = part; CVW.sel = part;
   const base = { ...hit, which, part, K: R.K, m: hit.c.m, l0: hit.c.m.inverse().transformPoint(new DOMPoint(x, y)), x0: x, y0: y, moved: false };
+  const act = e.shiftKey ? 'length' : e.altKey ? 'move' : EDIT.act, pv = hit.c.m.transformPoint(new DOMPoint(0, 0)), d0 = Math.hypot(x - pv.x, y - pv.y) || 1;
   if (EDIT.scope === 'frame') {
     if (!PREVIEW.on) { setPreview(true); toast('프레임별 편집은 미리보기(멈춘 프레임)에서 — 다시 끌어 주세요'); return; }
     const ang = H[part]?.ang;
-    if (e.shiftKey && hit.kind === 'joint') {   // 본 길이: 축에서 관절까지 거리 비율
-      const f = frameStart(), pv = hit.c.m.transformPoint(new DOMPoint(0, 0)), q = hit.c.m.transformPoint(new DOMPoint(...hit.c.j[hit.jn]));
-      bdrag = { ...base, mode: 'flen', pv, d0: Math.hypot(q.x - pv.x, q.y - pv.y) || 1, start: { dx: 0, dy: 0, rot: 0, sc: 1, len: 1, ...(f.radj[part] || {}) } };
-    } else if (e.altKey || which === 'front' || (!ang && part !== 'hips')) {
+    if (act === 'length' || act === 'scale') {   // 본 길이 · 파츠 크기: 축에서 마우스까지 거리 비율
+      const f = frameStart();
+      bdrag = { ...base, mode: act === 'scale' ? 'fscale' : 'flen', pv, d0, start: { dx: 0, dy: 0, rot: 0, sc: 1, len: 1, ...(f.radj[part] || {}) } };
+    } else if (act === 'move' || which === 'front' || (!ang && part !== 'hips')) {
       const f = frameStart(); bdrag = { ...base, mode: 'fadj', start: { dx: 0, dy: 0, rot: 0, sc: 1, ...(f.radj[part] || {}) } };
     } else if (part === 'hips') {
       const f = frameStart(); bdrag = { ...base, mode: 'fbody', start: { ...f.pose }, wk: g.wmat.a, face: P.view === 'flip' ? -P.facing : P.facing };
@@ -631,6 +643,9 @@ cvEl.addEventListener('mousedown', e => {
       const pv = m0.transformPoint(new DOMPoint(0, 0));
       bdrag = { ...base, mode: 'frot', ang, d, kids, pv, a0: Math.atan2(y - pv.y, x - pv.x) * 180 / Math.PI, start: { ...f.pose } };
     }
+  } else if (act !== 'move') {
+    // 전체 리깅 · 회전/길이/크기: 축 둘레로 관절(자식 자리)과 그림을 돌리거나 늘림. 회전에서 ‘개별’이면 그림만 돌림
+    bdrag = { ...base, mode: { rotate: 'grot', length: 'glen', scale: 'gscale' }[act], pv, d0, a0: Math.atan2(base.l0.y, base.l0.x), pivot0: [...a.pivot], joints0: structuredClone(a.joints || {}), adj0: { dx: 0, dy: 0, rot: 0, sc: 1, ...(a.adj || {}) } };
   } else {
     // 전체 리깅: 관절 끌기 = 관절 자리 · 축/그림 끌기 = 축 자리. 개별이면 붙은 자식(관절)·자기 관절(축)을 보정
     const kidsAt = hit.kind === 'joint' && !EDIT.kids ? g.childrenOf(which, part, hit.jn).map(k => ({ k, m: CVW.cap.find(c => c.name === k)?.m, pivot0: [...R.def.parts[k].pivot] })).filter(c => c.m) : [];
@@ -655,9 +670,15 @@ addEventListener('mousemove', e => {
   } else if (d.mode === 'fbody') {
     const f = TU.frameSet(PREVIEW.key, cur);
     f.pose = { ...d.start, x: (d.start.x || 0) + (x - d.x0) / d.wk * d.face, y: (d.start.y || 0) + (y - d.y0) / d.wk };
-  } else if (d.mode === 'flen') {
-    const f = TU.frameSet(PREVIEW.key, cur), k = Math.max(0.2, Math.min(4, Math.hypot(x - d.pv.x, y - d.pv.y) / d.d0));
-    f.radj = { ...(f.radj || {}), [d.part]: { ...d.start, len: Math.round(d.start.len * k * 100) / 100 } };
+  } else if (d.mode === 'flen' || d.mode === 'fscale') {   // 이 프레임: 본 길이(len) · 파츠 크기(len + 그림 sc)
+    const f = TU.frameSet(PREVIEW.key, cur), k = Math.max(0.2, Math.min(4, Math.hypot(x - d.pv.x, y - d.pv.y) / d.d0)), r2 = v => Math.round(v * 100) / 100;
+    f.radj = { ...(f.radj || {}), [d.part]: { ...d.start, len: r2(d.start.len * k), ...(d.mode === 'fscale' ? { sc: r2(d.start.sc * k) } : {}) } };
+  } else if (d.mode === 'grot' || d.mode === 'glen' || d.mode === 'gscale') {   // 전체 리깅: 관절을 축 둘레로 돌리기 · 늘리기 (+ 그림)
+    const k = Math.max(0.2, Math.min(4, Math.hypot(x - d.pv.x, y - d.pv.y) / d.d0)), da = d.mode === 'grot' ? Math.atan2(l.y, l.x) - d.a0 : 0, c = Math.cos(da), s2 = Math.sin(da), kk = d.mode === 'grot' ? 1 : k;
+    g.liveRig(d.which, d.part, a => {
+      if (d.mode !== 'grot' || EDIT.kids) for (const j in d.joints0) { const vx = d.joints0[j][0] - d.pivot0[0], vy = d.joints0[j][1] - d.pivot0[1]; a.joints[j] = [d.pivot0[0] + (vx * c - vy * s2) * kk, d.pivot0[1] + (vx * s2 + vy * c) * kk]; }
+      if (d.mode !== 'glen') a.adj = { ...d.adj0, ...(d.mode === 'grot' ? { rot: d.adj0.rot + da * 180 / Math.PI } : { sc: d.adj0.sc * k }) };
+    });
   } else if (d.mode === 'fadj') {
     const f = TU.frameSet(PREVIEW.key, cur);
     f.radj = { ...(f.radj || {}), [d.part]: { ...d.start, dx: d.start.dx + (l.x - d.l0.x) / K, dy: d.start.dy + (l.y - d.l0.y) / K } };
@@ -679,7 +700,8 @@ addEventListener('mouseup', () => {
   const R = d.which === 'front' ? g.frig : g.rig, E = rigEdit[d.which] ??= structuredClone(g.RIGPATCH[d.which] || {});
   const put = (part, fn) => fn((E.parts ??= {})[part] ??= {}, R.def.parts[part]);
   const r1 = v => v.map(n => Math.round(n * 10) / 10);
-  if (d.mode === 'joint') { put(d.part, (q, a) => { (q.joints ??= {})[d.jn] = r1(a.joints[d.jn]); }); for (const c of d.kidsAt) put(c.k, (q, a) => { q.pivot = r1(a.pivot); }); }
+  if (d.mode === 'grot' || d.mode === 'glen' || d.mode === 'gscale') put(d.part, (q, a) => { for (const j in a.joints) (q.joints ??= {})[j] = r1(a.joints[j]); if (a.adj) q.adj = { ...a.adj, rot: Math.round((a.adj.rot || 0) * 10) / 10, sc: Math.round((a.adj.sc || 1) * 1000) / 1000 }; });
+  else if (d.mode === 'joint') { put(d.part, (q, a) => { (q.joints ??= {})[d.jn] = r1(a.joints[d.jn]); }); for (const c of d.kidsAt) put(c.k, (q, a) => { q.pivot = r1(a.pivot); }); }
   else put(d.part, (q, a) => { q.pivot = r1(a.pivot); if (!EDIT.kids) for (const j in a.joints) (q.joints ??= {})[j] = r1(a.joints[j]); });
   rigApply();
 });
