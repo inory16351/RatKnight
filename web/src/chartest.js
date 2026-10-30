@@ -292,10 +292,11 @@ function renderRig() {
   { const hh = HH[rigPart] || {}, kids = g.childrenOf(rigWhich, rigPart);
     el.append(h('div', { class: 'hint', style: 'margin-top:4px' }, `고른 부위: ${hh.name || rigPart} · 부모 ${hh.parent ? (HH[hh.parent]?.name || hh.parent) + ' (' + hh.joint + ' 관절)' : '없음 (뿌리)'} · 자식 ${kids.map(k => HH[k]?.name || k).join(', ') || '없음'}`)); }
   if (EDIT.scope === 'frame') {   // 이 프레임만: 부위 그림 위치 (키 프레임, 보간)
-    const fr = TU.frameData(PREVIEW.key, cur)?.radj?.[rigPart] || {}, setF = (k, v) => { const f = frameStart(); f.radj[rigPart] = { dx: 0, dy: 0, rot: 0, sc: 1, ...(f.radj[rigPart] || {}), [k]: v }; TU.prune(); save(); renderRig(); renderStrip(); };
+    const fr = TU.frameData(PREVIEW.key, cur)?.radj?.[rigPart] || {}, setF = (k, v) => { const f = frameStart(); f.radj[rigPart] = { dx: 0, dy: 0, rot: 0, sc: 1, len: 1, ...(f.radj[rigPart] || {}), [k]: v }; TU.prune(); save(); renderRig(); renderStrip(); };
     const n2 = (v, st, on) => h('input', { type: 'number', step: st, value: Math.round(v * 100) / 100, onchange: e => on(+e.target.value) });
     el.append(h('h4', {}, `이 프레임만 (${PREVIEW.key} · ${cur}프레임) — 부위 그림 위치`));
-    el.append(h('div', { class: 'row' }, 'x', n2(fr.dx || 0, 1, v => setF('dx', v)), 'y', n2(fr.dy || 0, 1, v => setF('dy', v)), '각도', n2(fr.rot || 0, 1, v => setF('rot', v)), '배율', n2(fr.sc || 1, 0.01, v => setF('sc', v)),
+    el.append(h('div', { class: 'row' }, '본 길이 ×', n2(fr.len || 1, 0.05, v => setF('len', v)), h('span', { class: 'hint' }, '붙은 자식이 따라감 · 화면에서 Shift + 관절 끌기')));
+    el.append(h('div', { class: 'row' }, '그림 x', n2(fr.dx || 0, 1, v => setF('dx', v)), 'y', n2(fr.dy || 0, 1, v => setF('dy', v)), '각도', n2(fr.rot || 0, 1, v => setF('rot', v)), '배율', n2(fr.sc || 1, 0.01, v => setF('sc', v)),
       h('button', { class: 'b warn', onclick: () => { const f = TU.frameData(PREVIEW.key, cur); if (f?.radj) delete f.radj[rigPart]; TU.prune(); save(); renderRig(); renderStrip(); } }, '지우기')));
     el.append(h('p', { class: 'hint' }, '아래 [프레임별] 상태에서 화면의 관절을 끌면 이 프레임 자세(각도) 키가 찍힘. 아래 전체 리깅 값은 모든 동작에 적용됨.'));
   }
@@ -554,7 +555,7 @@ function renderBar() {
       tg('판정 도형', opt.colliders, v => opt.colliders = v), tg('도트화', g.PIX.on, v => g.PIX.on = v)),
     h('div', { class: 'grp' + (CVW.bones ? '' : ' off'), title: CVW.bones ? '' : '본·관절을 켜면 화면에서 끌어 고칠 수 있음' }, h('span', { class: 'gl' }, '끌어서 고치기'),
       pick('범위', [['rig', '전체 리깅 (모든 동작)'], ['frame', '이 프레임만 (키)']], EDIT.scope, v => { EDIT.scope = v; if (v === 'frame') { CVW.bones = true; if (!PREVIEW.on) setPreview(true); } renderBar(); renderRig(); },
-        '전체 리깅 = 리그 자체를 고침 · 이 프레임만 = 관절 끌기로 그 부위를 돌려 자세 키, Alt 끌기 = 이 프레임만 그림 위치'),
+        '전체 리깅 = 리그 자체를 고침 · 이 프레임만 = 관절 끌기 = 그 부위 돌리기 · Shift + 관절 끌기 = 본 길이 · Alt 끌기 = 그림 위치'),
       pick('자식', [['with', '같이 움직임'], ['stay', '제자리 (개별)']], EDIT.kids ? 'with' : 'stay', v => { EDIT.kids = v === 'with'; renderBar(); })));
   // 아랫줄: 동작 · 상태 · 재생
   const ms = h('select', { onchange: e => { PREVIEW.key = e.target.value; cur = 0; PREVIEW.t = 0; PREVIEW.on = true; renderMo(); renderBar(); } },
@@ -578,8 +579,13 @@ const dev = e => { const r = cvEl.getBoundingClientRect(); return [(e.clientX - 
 function hitBone(x, y) {
   const s = CVW.size * (devicePixelRatio || 1), caps = CVW.cap;
   const order = [...caps].sort((a, b) => (b.name === CVW.sel) - (a.name === CVW.sel) || a.far - b.far);
-  for (const c of order) for (const [jn, j] of Object.entries(c.p.j)) { const q = c.m.transformPoint(new DOMPoint(j[0], j[1])); if (Math.hypot(q.x - x, q.y - y) < 9 * s) return { kind: 'joint', c, jn }; }
-  for (const c of order) { const q = c.m.transformPoint(new DOMPoint(0, 0)); if (Math.hypot(q.x - x, q.y - y) < 8 * s) return { kind: 'pivot', c }; }
+  let best = null, bd = 1e9;   // 겹친 관절 중 가장 가까운 것 (고른 부위 · 가까운 쪽 부위를 조금 우대)
+  for (const c of order) {
+    const jl = c.j, bias = (c.name === CVW.sel ? -3 : 0) + (c.far ? 2 : 0);
+    for (const [jn, j] of Object.entries(jl)) { const q = c.m.transformPoint(new DOMPoint(j[0], j[1])), d = Math.hypot(q.x - x, q.y - y); if (d < 9 * s && d + bias < bd) { bd = d + bias; best = { kind: 'joint', c, jn }; } }
+    const q = c.m.transformPoint(new DOMPoint(0, 0)), d = Math.hypot(q.x - x, q.y - y); if (d < 8 * s && d + (c.far ? 2 : 0) + 4 < bd) { bd = d + (c.far ? 2 : 0) + 4; best = { kind: 'pivot', c }; }   // 관절과 자식 축이 겹치면 관절(본 끝)이 먼저
+  }
+  if (best) return best;
   for (const c of [...caps].reverse()) { if (c.far) continue; const l = c.m.inverse().transformPoint(new DOMPoint(x, y)); if (l.x >= -c.p.px && l.x <= c.p.w - c.p.px && l.y >= -c.p.py && l.y <= c.p.h - c.p.py) return { kind: 'image', c }; }
   return null;
 }
@@ -608,7 +614,10 @@ cvEl.addEventListener('mousedown', e => {
   if (EDIT.scope === 'frame') {
     if (!PREVIEW.on) { setPreview(true); toast('프레임별 편집은 미리보기(멈춘 프레임)에서 — 다시 끌어 주세요'); return; }
     const ang = H[part]?.ang;
-    if (e.altKey || which === 'front' || (!ang && part !== 'hips')) {
+    if (e.shiftKey && hit.kind === 'joint') {   // 본 길이: 축에서 관절까지 거리 비율
+      const f = frameStart(), pv = hit.c.m.transformPoint(new DOMPoint(0, 0)), q = hit.c.m.transformPoint(new DOMPoint(...hit.c.j[hit.jn]));
+      bdrag = { ...base, mode: 'flen', pv, d0: Math.hypot(q.x - pv.x, q.y - pv.y) || 1, start: { dx: 0, dy: 0, rot: 0, sc: 1, len: 1, ...(f.radj[part] || {}) } };
+    } else if (e.altKey || which === 'front' || (!ang && part !== 'hips')) {
       const f = frameStart(); bdrag = { ...base, mode: 'fadj', start: { dx: 0, dy: 0, rot: 0, sc: 1, ...(f.radj[part] || {}) } };
     } else if (part === 'hips') {
       const f = frameStart(); bdrag = { ...base, mode: 'fbody', start: { ...f.pose }, wk: g.wmat.a, face: P.view === 'flip' ? -P.facing : P.facing };
@@ -625,7 +634,7 @@ cvEl.addEventListener('mousedown', e => {
   } else {
     // 전체 리깅: 관절 끌기 = 관절 자리 · 축/그림 끌기 = 축 자리. 개별이면 붙은 자식(관절)·자기 관절(축)을 보정
     const kidsAt = hit.kind === 'joint' && !EDIT.kids ? g.childrenOf(which, part, hit.jn).map(k => ({ k, m: CVW.cap.find(c => c.name === k)?.m, pivot0: [...R.def.parts[k].pivot] })).filter(c => c.m) : [];
-    bdrag = { ...base, mode: hit.kind === 'joint' ? 'joint' : 'pivot', pivot0: [...a.pivot], joints0: structuredClone(a.joints || {}), jl0: hit.kind === 'joint' ? [...hit.c.p.j[hit.jn]] : null, kidsAt };
+    bdrag = { ...base, mode: hit.kind === 'joint' ? 'joint' : 'pivot', pivot0: [...a.pivot], joints0: structuredClone(a.joints || {}), jl0: hit.kind === 'joint' ? [...hit.c.j[hit.jn]] : null, kidsAt };
   }
   if (document.querySelector('#t-rig.on')) renderRig();
 });
@@ -646,6 +655,9 @@ addEventListener('mousemove', e => {
   } else if (d.mode === 'fbody') {
     const f = TU.frameSet(PREVIEW.key, cur);
     f.pose = { ...d.start, x: (d.start.x || 0) + (x - d.x0) / d.wk * d.face, y: (d.start.y || 0) + (y - d.y0) / d.wk };
+  } else if (d.mode === 'flen') {
+    const f = TU.frameSet(PREVIEW.key, cur), k = Math.max(0.2, Math.min(4, Math.hypot(x - d.pv.x, y - d.pv.y) / d.d0));
+    f.radj = { ...(f.radj || {}), [d.part]: { ...d.start, len: Math.round(d.start.len * k * 100) / 100 } };
   } else if (d.mode === 'fadj') {
     const f = TU.frameSet(PREVIEW.key, cur);
     f.radj = { ...(f.radj || {}), [d.part]: { ...d.start, dx: d.start.dx + (l.x - d.l0.x) / K, dy: d.start.dy + (l.y - d.l0.y) / K } };

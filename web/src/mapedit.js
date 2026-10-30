@@ -77,11 +77,24 @@ function defaultWorld() {
 }
 // 예전 형식(version 2: tiles 한 판) → 3
 function migrate(w) {
-  if (w.version === 3) return w;
+  if (!w || typeof w !== 'object') return null;
+  if (w.version === 3) return repair(w);
   if (w.version !== 2) return null;
   w.layers = [{ id: 'main', name: '기본 지형', kind: 'main', tiles: w.tiles || {} }]; delete w.tiles;
   w.objects = (w.objects || []).filter(o => o.type !== 'pass');   // 예전 ‘통로 표시’는 통로 레이어·구역으로 바뀜
-  w.version = 3; return w;
+  w.version = 3; return repair(w);
+}
+// 저장본을 불러올 때 빠지거나 깨진 값 채움 (편집이 막히지 않게)
+function repair(w) {
+  w.area ||= {}; w.rooms ||= []; w.objects ||= []; w.passages ||= []; w.seq ||= 1; w.tile ||= BLOCK; w.chunk ||= CH;
+  w.regions = (w.regions?.length ? w.regions : REGION_DEF.map(([id, name, role, color]) => ({ id, name, role, color })));
+  w.layers = (w.layers || []).filter(l => l && l.id);
+  if (!w.layers.some(l => l.id === 'main')) w.layers.unshift({ id: 'main', name: '기본 지형', kind: 'main', tiles: {} });
+  for (const l of w.layers) { l.tiles ||= {}; l.kind ||= l.id === 'main' ? 'main' : 'pass'; }
+  for (const o of w.objects) if (o.layer && !w.layers.some(l => l.id === o.layer)) o.layer = 'main';
+  const used = Math.max(0, ...[...w.objects, ...w.rooms, ...w.layers].map(q => +(String(q.id).match(/\d+$/)?.[0] || 0)));
+  if (w.seq <= used) w.seq = used + 1;   // 새로 만드는 것의 번호가 겹치지 않게
+  return w;
 }
 
 // ---------- 격자 (청크) — L = 'area' 또는 레이어 id ----------
@@ -99,6 +112,7 @@ function rawSet(S, x, y, v) {
 function get(L, x, y) { const c = store(L)?.[ck(x, y)]; return c ? c[y - Math.floor(y / CH) * CH][x - Math.floor(x / CH) * CH] : '.'; }
 function set(L, x, y, v) {
   const S = store(L); if (!S) return;
+  if (L !== 'area') { const l = layer(L); if (l?.hidden) { l.hidden = false; toast(`${l.name} 레이어가 숨김이라 다시 보이게 함`); } }
   const key = ck(x, y);
   if (stroke && !(L + '|' + key in stroke.chunks)) stroke.chunks[L + '|' + key] = S[key] ? [...S[key]] : null;
   if (rawSet(S, x, y, v)) { markDirty(L, key); if (L === 'area') areaDirty = true; }
@@ -163,6 +177,7 @@ function setMode(m) {
 function fit(x0, y0, x1, y1) { const w = cv.width, hh = cv.height; if (w < 50) return; const z = Math.max(0.15, Math.min(48, Math.min(w / (x1 - x0 + 8), hh / (y1 - y0 + 8)))); cam.z = z; cam.x = w / 2 - (x0 + x1) / 2 * z; cam.y = hh / 2 - (y0 + y1) / 2 * z; draw(); }
 function worldBounds() { let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; for (const S of [W.area, ...W.layers.map(l => l.tiles)]) for (const k in S) { const [a, b] = k.split(',').map(Number); x0 = Math.min(x0, a * CH); y0 = Math.min(y0, b * CH); x1 = Math.max(x1, a * CH + CH); y1 = Math.max(y1, b * CH + CH); } return x0 > x1 ? [0, 0, 100, 60] : [x0, y0, x1, y1]; }
 $('#fit-all').onclick = () => fit(...worldBounds());
+$('#eraser').onclick = () => { if (mode !== 'tile' && mode !== 'region') setMode('tile'); tool = mode === 'region' ? 'erase' : 'erase:tile'; panel(); draw(); };
 $('#fit-sel').onclick = () => fitSel();
 function fitSel() {
   const box = selBox(); if (box) return fit(box.x - 4, box.y - 4, box.x + box.w + 4, box.y + box.h + 4);
@@ -311,7 +326,7 @@ function draw() {
   if (hover && !drag?.cells && !drag?.region) {
     cx.lineWidth = 2 / z; cx.strokeStyle = '#f2b33d';
     if (rectA) { const [x0, y0, x1, y1] = norm(rectA, hover); cx.strokeStyle = '#2fe6ff'; cx.strokeRect(x0, y0, x1 - x0 + 1, y1 - y0 + 1); }
-    else if ((mode === 'tile' && isTile(tool)) || (mode === 'region' && tool === 'paint')) { const r = Math.floor(brush / 2); cx.strokeRect(hover[0] - r, hover[1] - r, brush, brush); }
+    else if ((mode === 'tile' && (isTile(tool) || catOf(tool) === 'erase')) || (mode === 'region' && (tool === 'paint' || tool === 'erase'))) { const r = Math.floor(brush / 2), er = catOf(tool) === 'erase' || tool === 'erase' || tool === '.'; cx.strokeStyle = er ? '#ff5d73' : '#f2b33d'; if (er) { cx.fillStyle = 'rgba(255,93,115,0.18)'; cx.fillRect(hover[0] - r, hover[1] - r, brush, brush); } cx.strokeRect(hover[0] - r, hover[1] - r, brush, brush); }
     else if (mode === 'tile' && (OBJ[tool] || assetTool(tool))) { const at = assetTool(tool), a = at && W.assets[at.rg]?.[at.kind]?.[at.n - 1], [w, hh] = a ? [a.w, a.h] : OBJ[tool].size; cx.strokeRect(hover[0], hover[1] - hh + 1, w, hh); }
   }
   if (newBox) { const [x0, y0, x1, y1] = norm(newBox.a, newBox.b); cx.strokeStyle = '#2fe6ff'; cx.lineWidth = 2 / z; cx.setLineDash([6 / z, 4 / z]); cx.strokeRect(x0, y0, x1 - x0 + 1, y1 - y0 + 1); cx.setLineDash([]); }
@@ -381,6 +396,7 @@ addEventListener('keydown', e => {
   }
   if (e.code === 'Escape') { cellSel = null; sel = null; draw(); panel(); }
   if (e.code === 'KeyF') fitSel();
+  if (e.code === 'KeyE') { if (mode === 'tile') tool = catOf(tool) === 'erase' ? floorCode(tileRegion, 1) : 'erase:tile'; else if (mode === 'region') tool = tool === 'erase' ? 'paint' : 'erase'; panel(); draw(); }
   if (mode === 'tile' && /^[0-5]$/.test(e.key)) { tool = e.key === '0' ? '.' : floorCode(tileRegion, +e.key); panel(); }
   if (e.key === '[') { brush = Math.max(1, brush - 1); panel(); draw(); } if (e.key === ']') { brush = Math.min(40, brush + 1); panel(); draw(); }
 });
@@ -412,15 +428,15 @@ cv.addEventListener('mousedown', e => {
   if (mode === 'region') {
     // 고른 지역의 범위 손잡이 = 범위 늘리기·줄이기
     const rb = sel?.kind === 'region' && regionBox(sel.id), hd = handleOf(rb, px, py);
-    if (hd && tool !== 'paint' && tool !== 'rect') { drag = { rbox: rb, rbox0: rb, hd, x, y, rid: sel.id }; return; }
+    if (hd && tool !== 'paint' && tool !== 'rect' && tool !== 'erase') { drag = { rbox: rb, rbox0: rb, hd, x, y, rid: sel.id }; return; }
     if (tool === 'select' || tool === 'move' || e.altKey) {
       const v = get('area', x, y); sel = v === '.' ? null : { kind: 'region', id: +v }; if (sel) curRegion = sel.id; panel();
       if (sel && tool === 'move') drag = { region: sel.id, box0: regionBox(sel.id), x, y, dx: 0, dy: 0 };
       draw(); return;
     }
-    begin(); const v = e.button === 2 ? '.' : String(curRegion);
+    begin(); const v = e.button === 2 || tool === 'erase' ? '.' : String(curRegion);
     if (tool === 'rect' || e.shiftKey) { rectA = [x, y]; drag = { rect: 'area', v }; return; }
-    paint(x, y, 'area', v); drag = { paint: 'area', v }; draw(); return;
+    paint(x, y, 'area', v); drag = { paint: 'area', v, last: [x, y] }; draw(); return;
   }
   if (mode === 'pass') {
     const l = curPass && passLayer(curPass), zb = l?.zone, hd = handleOf(zb, px, py);
@@ -448,6 +464,7 @@ cv.addEventListener('mousedown', e => {
     }
     rectA = [x, y]; drag = { pickCells: true }; return;
   }
+  if (catOf(tool) === 'erase') { begin(); const k = tool.slice(6); eraseAt(x, y, k); drag = { erase: k, last: [x, y] }; if (k !== 'tile' && k !== 'all') panel(); draw(); return; }
   if (tool === 'select' || ((OBJ[tool] || assetTool(tool)) && objAt(x, y) && e.button === 0)) {
     const o = objAt(x, y); sel = o ? { kind: 'obj', id: o.id } : null; panel();
     if (o) { begin(); drag = { obj: o, dx: x - o.x, dy: y - o.y }; }
@@ -467,7 +484,7 @@ cv.addEventListener('mousedown', e => {
   }
   begin(); const v = e.button === 2 ? '.' : tool;
   if (e.shiftKey) { rectA = [x, y]; drag = { rect: activeLayer, v }; return; }
-  paint(x, y, activeLayer, v); drag = { paint: activeLayer, v }; draw();
+  paint(x, y, activeLayer, v); drag = { paint: activeLayer, v, last: [x, y] }; draw();
 });
 addEventListener('mousemove', e => {
   const r = cv.getBoundingClientRect(), px = (e.clientX - r.left) * dpr(), py = (e.clientY - r.top) * dpr();
@@ -475,7 +492,11 @@ addEventListener('mousemove', e => {
   if (e.target !== cv && !drag) return;
   const [x, y] = toCell(px, py); hover = [x, y];
   const d = drag;
-  if (d?.paint) paint(x, y, d.paint, d.v);
+  if (d?.paint || d?.erase) {   // 빠르게 끌어도 칸이 비지 않게 지난 칸에서 지금 칸까지 선을 따라
+    const [lx, ly] = d.last || [x, y], n = Math.max(Math.abs(x - lx), Math.abs(y - ly), 1);
+    for (let i = 1; i <= n; i++) { const ix = Math.round(lx + (x - lx) * i / n), iy = Math.round(ly + (y - ly) * i / n); d.paint ? paint(ix, iy, d.paint, d.v) : eraseAt(ix, iy, d.erase); }
+    d.last = [x, y];
+  }
   if (d?.obj) { d.obj.x = x - d.dx; d.obj.y = y - d.dy; }
   if (d?.newRoom || d?.newZone) newBox.b = [x, y];
   if (d?.pickCells) { const [x0, y0, x1, y1] = norm(rectA, [x, y]); cellSel = { x0, y0, x1, y1 }; }
@@ -513,8 +534,15 @@ addEventListener('mouseup', () => {
   }
   if (d.move && d.moved && moveWithContent) moveCells({ x0: d.start.x, y0: d.start.y, x1: d.start.x + d.start.w - 1, y1: d.start.y + d.start.h - 1 }, d.move.x - d.start.x, d.move.y - d.start.y, null, true);
   if (d.move && !d.moved) undoStack.pop();
-  stroke = null; dirty(); if (d.obj || d.move || d.resize) panel();
+  stroke = null; dirty(); if (d.obj || d.move || d.resize || d.erase) panel();
 });
+
+// 지우개: 붓 크기 칸의 타일(이 레이어 / 모든 레이어) · 걸친 오브젝트
+function eraseAt(x, y, kind) {
+  const r = Math.floor(brush / 2), x0 = x - r, y0 = y - r, x1 = x0 + brush - 1, y1 = y0 + brush - 1;
+  if (kind !== 'obj') for (const L of kind === 'all' ? W.layers.map(l => l.id) : [activeLayer]) for (let yy = y0; yy <= y1; yy++) for (let xx = x0; xx <= x1; xx++) set(L, xx, yy, '.');
+  if (kind === 'obj' || kind === 'any') W.objects = W.objects.filter(o => !((kind === 'obj' || (o.layer || 'main') === activeLayer) && o.x <= x1 && o.x + (o.w || 1) - 1 >= x0 && o.y <= y1 && o.y + (o.h || 1) - 1 >= y0));
+}
 
 // ---------- 옮기기 · 범위 바꾸기 ----------
 let moveWithContent = true;
@@ -571,10 +599,10 @@ function panel() { const el = $('#side'); el.innerHTML = ''; ({ region: regionPa
 function toolChip() {
   const t = $('#toolchip'); if (!t) return;
   let col = '#9aa0c8', txt = '';
-  if (mode === 'region') { const r = region(curRegion); col = r?.color || col; txt = `${{ paint: '붓', rect: '사각형', select: '고르기 · 범위', move: '통째로 옮기기' }[tool] || ''} · 지역 ${r ? r.id + ' ' + r.name : ''}`; }
+  if (mode === 'region') { const r = region(curRegion); col = tool === 'erase' ? '#ff5d73' : r?.color || col; txt = tool === 'erase' ? '지우개 · 지역 색' : `${{ paint: '붓', rect: '사각형', select: '고르기 · 범위', move: '통째로 옮기기' }[tool] || ''} · 지역 ${r ? r.id + ' ' + r.name : ''}`; }
   else if (mode === 'pass') { const l = curPass && passLayer(curPass); col = l ? layerColor(l) : col; txt = curPass ? `${passLabel(passage(curPass))} 구역` : '통로를 고르세요'; }
   else if (mode === 'room') txt = tool === 'new' ? '새 방 그리기' : '방 고르기 · 옮기기';
-  else { const at = assetTool(tool), ti = isTile(tool) && tileInfo(tool); if (at) { col = at.kind === 'light' ? '#ffdc78' : region(at.rg)?.color || col; txt = `${at.rg}번 ${W.assets[at.rg][at.kind][at.n - 1].name}`; } else if (OBJ[tool]) { col = OBJ[tool].col; txt = OBJ[tool].name; } else if (ti) { col = tileColor(ti, region(tileRegion)?.color); txt = ti.kind === 'floor' ? `${ti.rg}번 바닥 ${ti.n}` : ti.kind === 'spike' ? `${ti.rg}번 가시 ${ti.n} ${DIRS[ti.d]}` : { plat: '발판', water: '물', lava: '용암' }[ti.kind]; } else if (tool === '.') txt = '지우개'; else if (tool === 'cells') { col = '#2fe6ff'; txt = '범위 선택 · 옮기기'; } else txt = '고르기 · 옮기기'; txt += ` → ${layer(activeLayer)?.name}`; }
+  else { const at = assetTool(tool), ti = isTile(tool) && tileInfo(tool); if (at) { col = at.kind === 'light' ? '#ffdc78' : region(at.rg)?.color || col; txt = `${at.rg}번 ${W.assets[at.rg][at.kind][at.n - 1].name}`; } else if (OBJ[tool]) { col = OBJ[tool].col; txt = OBJ[tool].name; } else if (ti) { col = tileColor(ti, region(tileRegion)?.color); txt = ti.kind === 'floor' ? `${ti.rg}번 바닥 ${ti.n}` : ti.kind === 'spike' ? `${ti.rg}번 가시 ${ti.n} ${DIRS[ti.d]}` : { plat: '발판', water: '물', lava: '용암' }[ti.kind]; } else if (tool === '.' || catOf(tool) === 'erase') { col = '#ff5d73'; txt = `지우개 · ${ERASE[tool] || '타일'}`; } else if (tool === 'cells') { col = '#2fe6ff'; txt = '범위 선택 · 옮기기'; } else txt = '고르기 · 옮기기'; txt += ` → ${layer(activeLayer)?.name}`; }
   t.replaceChildren(swatch(col), txt);
 }
 const passLabel = p => p ? `${p.from} ${p.dir === 'two' ? '↔' : '→'} ${p.to}` : '';
@@ -582,9 +610,9 @@ const passLabel = p => p ? `${p.from} ${p.dir === 'two' ? '↔' : '→'} ${p.to}
 function regionPanel(el) {
   const st = regionStats(), r = region(curRegion);
   el.append(card('r-paint', '지역', '#f2b33d', [
-    h('div', { class: 'row' }, pick('도구', [['paint', '붓 (칠하기)'], ['rect', '사각형 채우기'], ['select', '고르기 · 범위 조절'], ['move', '통째로 옮기기 (끌기)']], tool, v => { tool = v; panel(); draw(); })),
-    tool === 'paint' || tool === 'rect' ? brushRow() : null,
-    h('div', { class: 'hint' }, { paint: '왼쪽 = 칠하기 · 오른쪽 = 지우기 · Shift = 사각형', rect: '끌어서 사각형 채우기 · 오른쪽 = 지우기', select: '지역 클릭 = 고르기 → 테두리 손잡이 끌기 = 범위 늘리기·줄이기 (늘어난 빈칸만 칠함, 지형은 그대로)', move: '지역을 끌면 그 지역 칸 · 위의 모든 레이어 지형 · 오브젝트 · 방이 통째로 옮겨짐' }[tool]),
+    h('div', { class: 'row' }, pick('도구', [['paint', '붓 (칠하기)'], ['erase', '지우개 (지역 색)'], ['rect', '사각형 채우기'], ['select', '고르기 · 범위 조절'], ['move', '통째로 옮기기 (끌기)']], tool, v => { tool = v; panel(); draw(); })),
+    tool === 'paint' || tool === 'rect' || tool === 'erase' ? brushRow() : null,
+    h('div', { class: 'hint' }, { erase: '끌면 지역 색만 지움 (지형은 그대로)', paint: '왼쪽 = 칠하기 · 오른쪽 = 지우기 · Shift = 사각형', rect: '끌어서 사각형 채우기 · 오른쪽 = 지우기', select: '지역 클릭 = 고르기 → 테두리 손잡이 끌기 = 범위 늘리기·줄이기 (늘어난 빈칸만 칠함, 지형은 그대로)', move: '지역을 끌면 그 지역 칸 · 위의 모든 레이어 지형 · 오브젝트 · 방이 통째로 옮겨짐' }[tool]),
     h('div', { class: 'sub' }, '지역 (누르면 칠할 지역)'),
     W.regions.map(q => h('div', { class: 'item' + (curRegion === q.id ? ' on' : ''), style: `--c:${q.color}`, onclick: () => { curRegion = q.id; sel = { kind: 'region', id: q.id }; panel(); draw(); } },
       swatch(q.color), h('b', {}, `${q.id} ${q.name}`), h('span', { class: 'hint' }, `${q.role || ''} · ${st[q.id] ? `${st[q.id].x1 - st[q.id].x0 + 1}×${st[q.id].y1 - st[q.id].y0 + 1}칸` : '비어 있음'}`))),
@@ -646,9 +674,11 @@ function roomPanel(el) {
   })));
 }
 // 타일·오브젝트: ‘그릴 것’ = 종류 → 항목 (드롭다운) + 미리보기
-const CATS = [['floor', '바닥 타일'], ['spike', '가시 타일'], ['common', '공통 타일 (발판·물·용암·지우개)'], ['prop', '지역 오브젝트'], ['light', '지역 광원'], ['decor', '지역 장식'], ['game', '게임 오브젝트'], ['cells', '범위 선택 · 옮기기'], ['select', '오브젝트 고르기 · 옮기기']];
+const ERASE = { 'erase:tile': '타일 (이 레이어)', 'erase:all': '타일 (모든 레이어)', 'erase:obj': '오브젝트만', 'erase:any': '타일 + 오브젝트 (이 레이어)' };
+const CATS = [['erase', '지우개'], ['floor', '바닥 타일'], ['spike', '가시 타일'], ['common', '공통 타일 (발판·물·용암·지우개)'], ['prop', '지역 오브젝트'], ['light', '지역 광원'], ['decor', '지역 장식'], ['game', '게임 오브젝트'], ['cells', '범위 선택 · 옮기기'], ['select', '오브젝트 고르기 · 옮기기']];
 function catOf(t) {
   if (t === 'select' || t === 'cells') return t;
+  if (typeof t === 'string' && t.startsWith('erase:')) return 'erase';
   const at = assetTool(t); if (at) return at.kind;
   if (OBJ[t]) return 'game';
   const ti = isTile(t) && tileInfo(t);
@@ -658,9 +688,10 @@ function catOf(t) {
 }
 function itemsOf(cat) {
   const A = W.assets[tileRegion];
+  if (cat === 'erase') return Object.entries(ERASE);
   if (cat === 'floor') return A.floor.map((f, i) => [floorCode(tileRegion, i + 1), `${i + 1} · ${f.name}`]);
   if (cat === 'spike') return A.spike.map((f, i) => [spikeCode(tileRegion, i + 1, spikeDir), `${i + 1} · ${f.name}`]);
-  if (cat === 'common') return [['=', '발판 (아래서 통과)'], ['~', '물'], ['%', '용암'], ['.', '지우개']];
+  if (cat === 'common') return [['=', '발판 (아래서 통과)'], ['~', '물'], ['%', '용암']];
   if (ASSET_KIND[cat]) return A[cat].map((a, i) => [`asset:${cat}:${tileRegion}:${i + 1}`, `${i + 1} · ${a.name} (${a.w}×${a.h}칸)`]);
   if (cat === 'game') return Object.entries(OBJ).map(([k, d]) => [k, d.name]);
   return [[cat, '']];
@@ -697,8 +728,9 @@ function tilePanel(el) {
       h('div', { class: 'hint' }, '끌어서 범위 고르기 → 범위 안쪽을 끌면 옮김 · Delete = 범위 지우기 · Esc = 선택 풀기'),
       h('div', { class: 'row' }, chk('모든 레이어', moveOpt.allLayers, v => moveOpt.allLayers = v), chk('지역 색도', moveOpt.area, v => moveOpt.area = v), chk('오브젝트도', moveOpt.objects, v => moveOpt.objects = v)),
       cellSel ? h('div', { class: 'row' }, h('span', { class: 'hint' }, `선택 ${cellSel.x1 - cellSel.x0 + 1}×${cellSel.y1 - cellSel.y0 + 1}칸`), ...[['←', -1, 0], ['→', 1, 0], ['↑', 0, -1], ['↓', 0, 1]].map(([n, dx, dy]) => h('button', { class: 'mini', onclick: () => { const Ls = [...(moveOpt.allLayers ? W.layers.map(l => l.id) : [activeLayer]), ...(moveOpt.area ? ['area'] : [])]; begin(); moveCells(cellSel, dx, dy, { Ls }); cellSel = { x0: cellSel.x0 + dx, y0: cellSel.y0 + dy, x1: cellSel.x1 + dx, y1: cellSel.y1 + dy }; end(); } }, n))) : null] : null,
-    !['select', 'cells'].includes(cat) ? toolPreview() : null,
-    isTile(tool) ? brushRow() : null,
+    !['select', 'cells', 'erase'].includes(cat) ? toolPreview() : null,
+    isTile(tool) || cat === 'erase' ? brushRow() : null,
+    cat === 'erase' ? h('div', { class: 'hint' }, '끌면 붓 크기만큼 지움 · E = 지우개 · 다른 도구에서도 오른쪽 버튼 = 지우기') : null,
     isTile(tool) ? h('div', { class: 'hint' }, '왼쪽 = 칠하기 · 오른쪽 = 지우기 · Shift 끌기 = 사각형 · 1~5 = 이 타일셋 바닥 · 0 = 지우개') : null]));
   const o = sel?.kind === 'obj' && W.objects.find(x => x.id === sel.id);
   if (o) objForm(el, o);

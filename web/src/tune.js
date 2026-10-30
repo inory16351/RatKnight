@@ -82,7 +82,7 @@ export function applyPose(key, t, p) {
   for (const bone in d) q[bone] = (q[bone] ?? ZERO[bone]) + d[bone];
   return q;
 }
-const radjFlat = Object.assign(o => { const d = {}; for (const p in o) for (const k in o[p]) d[p + '.' + k] = o[p][k]; return d; }, { zero: n => n.endsWith('.sc') ? 1 : 0 });
+const radjFlat = Object.assign(o => { const d = {}; for (const p in o) for (const k in o[p]) d[p + '.' + k] = o[p][k]; return d; }, { zero: n => n.endsWith('.sc') || n.endsWith('.len') ? 1 : 0 });
 const radjUnflat = d => { const o = {}; for (const n in d) { const [p, k] = n.split('.'); (o[p] ??= {})[k] = d[n]; } return o; };
 // 프레임별 부위 위치 { 부위: { dx, dy, rot, sc } } (리그 덮어쓰기 위에 더해짐)
 export const radjAt = (key, t) => key ? keyed(key, t, 'radj', radjFlat, radjUnflat) : null;

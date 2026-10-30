@@ -1514,7 +1514,7 @@ function drawBones() {
   for (const n in at) {
     const c = at[n], pv = P2(c.m, 0, 0), col = colOf(n), dim = c.far && !(n === CHARVIEW.sel || kids.has(n)) ? 0.55 : 1;
     ctx.globalAlpha = dim;
-    for (const [jn, j] of Object.entries(c.p.j)) {
+    for (const [jn, j] of Object.entries(c.j)) {
       const q = P2(c.m, j[0], j[1]), dx = q.x - pv.x, dy = q.y - pv.y, L = Math.hypot(dx, dy) || 1, w = Math.min(7 * s, L * 0.14), nx = -dy / L * w, ny = dx / L * w;
       ctx.fillStyle = col + '55'; ctx.strokeStyle = col; ctx.lineWidth = 1.5 * s;
       ctx.beginPath(); ctx.moveTo(pv.x + nx, pv.y + ny); ctx.lineTo(q.x, q.y); ctx.lineTo(pv.x - nx, pv.y - ny); ctx.closePath(); ctx.fill(); ctx.stroke();
@@ -1522,8 +1522,8 @@ function drawBones() {
   }
   // 부모 관절 → 자식 축 (붙는 자리가 떨어져 있으면 점선)
   for (const n in at) {
-    const h = H[n], par = h?.parent && at[h.parent]; if (!par || !par.p.j[h.joint]) continue;
-    const a = P2(par.m, ...par.p.j[h.joint]), b = P2(at[n].m, 0, 0);
+    const h = H[n], par = h?.parent && at[h.parent]; if (!par || !par.j[h.joint]) continue;
+    const a = P2(par.m, ...par.j[h.joint]), b = P2(at[n].m, 0, 0);
     if (Math.hypot(a.x - b.x, a.y - b.y) > 2 * s) { ctx.globalAlpha = 1; ctx.strokeStyle = colOf(n); ctx.lineWidth = 1.5 * s; ctx.setLineDash([3 * s, 3 * s]); ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); ctx.setLineDash([]); }
   }
   // 관절 (원) · 축 (네모) · 이름
@@ -1531,7 +1531,7 @@ function drawBones() {
   for (const n in at) {
     const c = at[n], pv = P2(c.m, 0, 0), col = colOf(n), sel = n === CHARVIEW.sel;
     ctx.globalAlpha = c.far && !sel && !kids.has(n) ? 0.6 : 1;
-    for (const [jn, j] of Object.entries(c.p.j)) {
+    for (const [jn, j] of Object.entries(c.j)) {
       const q = P2(c.m, j[0], j[1]), hot = CHARVIEW.hot === n + ':' + jn;
       ctx.fillStyle = hot ? '#fff' : col; ctx.strokeStyle = '#111'; ctx.lineWidth = 1.5 * s;
       ctx.beginPath(); ctx.arc(q.x, q.y, (hot ? 7 : 4.5) * s, 0, 7); ctx.fill(); ctx.stroke();
@@ -1695,7 +1695,7 @@ function sampleBlade(t0, t1) {
     const vf = r.view === 'flip' ? -f : f;
     const bl = (fr && FR[fr.i] && frameBlade(fr, P.x, P.y, f))
       || ((r.view === 'front' || r.view === 'back') && frig && r.tipL ? (P.trail.tipAttached ? viewBladeAt(r, P.x, P.y, f) : { g: viewHand(r.view, P.x, P.y), t: [P.x + f * r.tipL[0], P.y + r.tipL[1]] }) : null)
-      || bladeAt(rig, r.pose, P.x, P.y, vf);   // 통그림 구간은 그림 속 칼, 정면·뒷모습은 손 → 칼끝 자리
+      || bladeAt(rig, r.pose, P.x, P.y, vf, TU.radjAt(P.atkName, ts));   // 프레임별 본 길이도 칼끝에 반영   // 통그림 구간은 그림 속 칼, 정면·뒷모습은 손 → 칼끝 자리
     let out = bl.t, g2 = bl.g;
     if (c.hz && !path) {   // 수평 베기: 칼끝이 몸을 가로지르는 가슴 높이 경로(몸통 둘레 납작한 타원)를 꼬리가 따라감
       const th = r.th * Math.PI / 180, ct = Math.cos(th), cx = P.x + r.pose.x * f + e.cx * f, cy = P.y + r.pose.y + e.cy - 4;
