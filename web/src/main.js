@@ -1,20 +1,26 @@
 // 기사쥐 액션 모션 프로토: 단색 테스트장 + 허수아비. 모션·타격감 확정용.
-import { loadRig, drawRig, bladeAt, rebake, LIGHT, tipOf, drawFront, frontHand, frontGripAt, lerpPose, SS } from './rig.js';
+import { loadRig, drawRig, bladeAt, rebake, LIGHT, tipOf, drawFront, frontHand, frontGripAt, lerpPose, SS, DRAW_ORDER, ORDER_NAME, HIER, childrenOf } from './rig.js';
 import { SHADE, bakePart, variantFor, pixelate } from './shade.js';
 import * as A from './anim.js';
-import * as F from './fx.js';
+import * as FXM from './fx.js';
 import { makeToad, TOAD } from './boss.js';
 import { makeCentipede, CENTI } from './centipede.js';
 import * as HBOX from './hitbox.js';
-import * as SK from './skills.js';
 import * as HUD from './hud.js';
+import * as TU from './tune.js';
+import { ABIL, BLOCK, LEVEL_UNLOCK } from './abilities.js';
+// 이펙트 끄기(튜닝 fxOff): 종류별로 함수를 감쌈. 꺼진 동안은 아무것도 안 만듦
+const FX_GATE = { dust: 'dust', hitBurst: 'hit', sfx: 'sfx', damage: 'dmg', speedSlices: 'slices', spinFx: 'spin', crescent: 'spin', chargeIn: 'charge', edgeGlint: 'charge', tipGlint: 'charge', tipSpark: 'spark', focusLines: 'focus' };
+const F = { ...FXM };
+for (const k in FX_GATE) F[k] = (...a) => TU.fxOn(FX_GATE[k]) ? FXM[k](...a) : undefined;
+const CHARTEST = !!globalThis.__CHARTEST;   // 캐릭터 테스트 도구 (web/chartest.html)
 performance.setResourceTimingBufferSize?.(5000);   // 단일 HTML 빌드(tools/build_single.js)가 읽은 그림 목록을 빠짐없이 모으게 (기본 250개에서 잘림)
 
 const W = 1280, H = 720, GROUND = 600;
 const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
 let dpr = 1, view = 1;
 function resize() {
-  const s = Math.min(innerWidth / W, innerHeight / H);
+  const s = Math.min((innerWidth - (globalThis.__sideW || 0)) / W, (innerHeight - (globalThis.__bottomH || 0)) / H);   // __sideW · __bottomH = 도구 옆·아래 패널 크기
   dpr = devicePixelRatio || 1;
   cv.style.width = W * s + 'px'; cv.style.height = H * s + 'px';
   cv.width = Math.round(W * s * dpr); cv.height = Math.round(H * s * dpr);
@@ -60,16 +66,35 @@ const ROOMS = [
   { name: '종착역 — 레일 지네의 굴', theme: 'subway', w: 1700, plats: [{ x: 230, y: GROUND - 170, w: 200 }, { x: 1270, y: GROUND - 170, w: 200 }], dummy: null, items: [],
     boss: { type: 'centipede', x: 1300 }, L: { to: 6, x: 2130 } },
 ];
-let room = 0, PLATS = ROOMS[0].plats, BLOCKS = [], WORLD_W = ROOMS[0].w, fade = 0;
+// 캐릭터 테스트장 (chartest.html): 능력마다 시험 구간 하나씩. 1블럭 = 48px. spikes = 가시 (side = 가시 끝이 향하는 쪽)
+const B = BLOCK;
+const TEST_ROOM = { name: '캐릭터 테스트장', theme: 'none', w: 5600, plats: [{ x: 300, y: GROUND - 3 * B, w: 4 * B }], dummy: 600, items: [], shelter: 160,
+  blocks: [
+    { x: 1500, y: GROUND - 4 * B, w: 4 * B, h: 4 * B },                       // ③ 이단 점프 선반 (4블럭 = 192px, 한 번 점프 152px 로는 못 오름)
+    { x: 2000, y: GROUND - 9 * B, w: B, h: 6 * B }, { x: 2300, y: GROUND - 9 * B, w: B, h: 6 * B },   // ② 패링 수직갱: 안쪽 면이 가시
+    { x: 2348, y: GROUND - 10 * B, w: 3 * B, h: B },                           //    갱 꼭대기 오른쪽 선반
+    { x: 2800, y: GROUND - 12 * B, w: 5 * B, h: 12 * B },                      // ④ 슈퍼점프 절벽 (12블럭 = 576px)
+    { x: 3500, y: GROUND - 24 * B, w: 4 * B, h: 24 * B },                      // ⑤ 벽통과용 두꺼운 벽 (4블럭)
+    { x: 4300, y: GROUND - 10 * B, w: B, h: 7 * B }, { x: 4560, y: GROUND - 11 * B, w: B, h: 8 * B },   // ⑥ 벽 차기 수직갱
+  ],
+  spikes: [
+    { x: 900, y: GROUND - 24, w: 6 * B, h: 24, side: 'up' },                   // ① 가로 가시밭 6블럭 (3연속 대시)
+    { x: 2000 + B, y: GROUND - 9 * B, w: 14, h: 6 * B, side: 'right' }, { x: 2300 - 14, y: GROUND - 9 * B, w: 14, h: 6 * B, side: 'left' },
+    { x: 2000 + B, y: GROUND - 24, w: 300 - B, h: 24, side: 'up' },           // 수직갱 바닥 가시
+  ],
+  signs: [[900, '① 가시밭 · 3연속 대시(a)'], [1500, '③ 높은 선반 · 이단 점프(c)'], [2000, '② 가시 수직갱 · 패링(b)'], [2800, '④ 절벽 · 슈퍼점프(d)'], [3350, '⑤ 두꺼운 벽 · 벽통과(e)'], [4300, '⑥ 벽 차기 수직갱'], [4900, '⑦ 적 · 패링 연습']],
+  foes: [{ type: 'crawler', x: 4950 }, { type: 'flyer', x: 5200, y: GROUND - 200 }, { type: 'pigeon', x: 5400, y: GROUND - 240 }] };
+if (CHARTEST) { ROOMS.length = 0; ROOMS.push(TEST_ROOM); }
+let room = 0, PLATS = ROOMS[0].plats, BLOCKS = [], SPIKES = [], WORLD_W = ROOMS[0].w, fade = 0;
 const PW = 10, PH = 56;   // 플레이어 몸 반너비·키 (벽 덩어리 충돌용)
 const got = { dj: false, sword: false };
 
 // ---------- 성장: 레벨 · 경험치(치즈) · 기술 해금 ----------
-// 기본 3타·공중 회전·짧은 대시는 처음부터. 레벨이 오르면 노드 포인트 1 → 쉼터에서 스킬 노드로 기술·능력치를 고름 (skills.js, 2026-10-29)
-const G = { lv: 1, xp: 0, sp: 0, maxHp: 5, atkMul: 1, skills: new Set(['root']), down: {}, save: { room: 0, x: 200 }, lit: new Set(['0:200']) };
-const LV_XP = [0, 0, 12, 30, 55, 85, 120, 165, 220];   // 이 경험치에 닿으면 그 레벨 (최대 Lv8 = 노드 7개)
-const dmgOf = c => Math.round((c.dmg || 8) * (G.atkMul || 1));   // 공격력 노드 배율
-const has = k => G.skills.has(k);
+// 기본 3타·공중 회전·짧은 대시는 처음부터. 레벨업 자동 해금(abilities.js LEVEL_UNLOCK), 이동 능력 a~e·벽 차기는 보스 보상 (스킬 노드 폐지 2026-10-30)
+const G = { lv: 1, xp: 0, maxHp: 5, atkMul: 1, ab: new Set(), down: {}, save: { room: 0, x: 200 }, lit: new Set(['0:200']) };
+const LV_XP = [0, 0, 12, 30, 55, 85, 120, 165, 220];   // 이 경험치에 닿으면 그 레벨 (최대 Lv8)
+const dmgOf = c => Math.round((c.dmg || 8) * (G.atkMul || 1));
+const has = k => G.ab.has(k);
 let E = [], CH = [];   // 지금 방의 적 · 떨어진 치즈
 let BOSS = null;       // 지금 방의 보스 (boss.js · centipede.js)
 const BOSSES = {
@@ -91,17 +116,13 @@ const bossApi = {
 
 // ---------- 입력 ----------
 const keys = {}, pressed = {};
-const KEYMAP = { KeyF: 'heavy', ArrowLeft: 'left', ArrowRight: 'right', ArrowDown: 'down', ArrowUp: 'up', Escape: 'esc', Enter: 'enter', KeyZ: 'jump', Space: 'jump', KeyA: 'atk', KeyX: 'atk', KeyJ: 'atk', KeyC: 'dash', ShiftLeft: 'dash', ShiftRight: 'dash', KeyH: 'hurt', KeyK: 'die', KeyT: 'slow', KeyG: 'shade', KeyV: 'compare' };
-addEventListener('keydown', e => { const k = KEYMAP[e.code]; if (!k) return; e.preventDefault(); if (!keys[k]) pressed[k] = true; keys[k] = true; });
-addEventListener('keyup', e => { const k = KEYMAP[e.code]; if (k) keys[k] = false; });
+// 키 배치 = 튜닝 keys (캐릭터 테스트 도구에서 바꿈). 입력칸에 글자를 칠 땐 게임 입력으로 안 받음
+const typing = e => /INPUT|TEXTAREA|SELECT/.test(e.target?.tagName || '') || globalThis.__keyCapture;
+addEventListener('keydown', e => { if (typing(e)) return; const k = TU.actionOf(e.code); if (!k) return; e.preventDefault(); if (!keys[k]) pressed[k] = true; keys[k] = true; });
+addEventListener('keyup', e => { const k = TU.actionOf(e.code); if (k) keys[k] = false; });
 // 우클릭 = 강공격 (메뉴는 막음)
 cv.addEventListener('contextmenu', e => e.preventDefault());
 cv.addEventListener('mousedown', e => {
-  if (e.button === 0 && SK.skillUI.open) {   // 스킬 노드 창: 노드 클릭 = 고르고 배우기
-    const r = cv.getBoundingClientRect(), id = HUD.nodeAt((e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * H, W, H);
-    if (id) { SK.skillUI.sel = id; SK.skillUI.onLearn?.(id); }
-    return;
-  }
   if (e.button === 2) { e.preventDefault(); if (!keys.heavy) pressed.heavy = true; keys.heavy = true; } });
 addEventListener('mouseup', e => { if (e.button === 2) keys.heavy = false; });
 
@@ -113,13 +134,20 @@ function playerHurtBox() { return HBOX.body(P.x, P.y - 3, 10, 51); }
 function enemyAttack(shape, sourceX, feet = false) {
   rememberCollider(shape, 'enemy');
   const target = feet ? HBOX.foot(P.x, P.y) : playerHurtBox();
-  if (P.inv > 0 || P.state === 'dead' || (feet && !P.ground) || !HBOX.touches(shape, target)) return false;
+  if (invNow() || P.state === 'dead' || (feet && !P.ground) || !HBOX.touches(shape, target)) return false;
+  if (parryActive()) { parried(sourceX); return false; }
   hurtPlayer(sourceX); return true;
+}
+// 무적: 맞은 뒤 깜빡임 · 3연속 대시(a) 대시 내내 · 벽통과 순간 · 튜닝 프레임 무적
+function invNow() {
+  if (P.inv > 0 || P.phaseT > 0) return true;
+  if (P.state === 'dash' && has('dash3')) return true;
+  const k = motionKey(); return !!(k && TU.frameData(k, TU.frameOf(fclock()))?.inv);
 }
 function foeHurtBox(e) { return HBOX.grow(HBOX.body(e.x, e.y, e.hw, e.hh * 2), HBOX.GRACE.hurt); }
 const P = {
-  x: 420, y: GROUND, vx: 0, vy: 0, facing: 1, ground: true, coyote: 0, jumpBuf: 0, hasDJ: false, djAvail: true, djT: 9, hp: 5, inv: 0,
-  state: 'move', t: 0, combo: 0, atkBuf: 0, atk: null, airDash: true, airAtk: true, atkId: 0, hit: false,
+  x: 420, y: GROUND, vx: 0, vy: 0, facing: 1, ground: true, coyote: 0, jumpBuf: 0, djAvail: true, djT: 9, hp: 5, inv: 0, dashN: 0, phaseT: 0, parryCd: 0,
+  state: 'move', t: 0, combo: 0, atkBuf: 0, atk: null, airAtk: true, atkId: 0, hit: false,
   runPh: 0, landT: 9, flash: 0, ghosts: [], trail: null, pose: A.IDLE,
 };
 const D = { x: 820, y: GROUND, hp: 3, tilt: 0, vt: 0, flash: 0, cut: null, respawn: 0 };
@@ -139,7 +167,7 @@ function groundAt(x, yPrev, y) {
 // ---------- 방 이동 · 아이템 ----------
 function loadRoom(i) {
   combatCols.length = 0;
-  room = i; PLATS = ROOMS[i].plats; BLOCKS = ROOMS[i].blocks || []; WORLD_W = ROOMS[i].w;
+  room = i; PLATS = ROOMS[i].plats; BLOCKS = ROOMS[i].blocks || []; SPIKES = ROOMS[i].spikes || []; WORLD_W = ROOMS[i].w;
   D.x = ROOMS[i].dummy ?? -9999; D.hp = 3; D.cut = null; D.tilt = 0; D.vt = 0;
   E = (ROOMS[i].foes || []).map(spawnFoe); CH = []; SHOTS = [];
   const bs = ROOMS[i].boss;
@@ -195,7 +223,7 @@ function checkItems() {
     if (got[it.id] || Math.abs(P.x - it.x) > 44 || Math.abs(P.y - iy) > 60) continue;
     got[it.id] = true;
     F.sfx(it.id === 'dj' ? '획득!' : '번쩍!', it.x, iy - 120, 1, true); flashScreen = 0.6;
-    if (it.id === 'dj') { P.hasDJ = true; showBanner('이단 점프 획득 — 공중에서 점프를 한 번 더. 높은 비상계단에 오를 수 있다'); }
+    if (it.id === 'dj') { G.ab.add('dj'); showBanner('이단 점프 획득 — 공중에서 점프를 한 번 더. 높은 비상계단에 오를 수 있다'); }
     else if (it.id.startsWith('heart')) { G.maxHp++; P.hp = G.maxHp; showBanner('체력 조각 — 최대 체력 +1. 벽 차기로만 닿는 간판 위의 보물', 4); }
     else showBanner('명검의 기운이 느껴진다… (프로토 여기까지)', 5);
   }
@@ -370,15 +398,16 @@ function updateCheese(dt) {
 function gainXp(v) {
   G.xp += v;
   while (G.lv < LV_XP.length - 1 && G.xp >= LV_XP[G.lv + 1]) {
-    G.lv++; G.sp++;
+    G.lv++;
+    const got = (LEVEL_UNLOCK[G.lv] || []).map(k => { if (k === 'hp') { G.maxHp++; return '최대 체력 +1'; } G.ab.add(k); return ABIL[k].name + ' 해금'; });
     P.hp = G.maxHp;   // 레벨이 오르면 체력도 다 참
-    showBanner(`레벨 업! Lv${G.lv} — 노드 포인트 +1 (쉼터 촛불 앞에서 ↑ 로 스킬 노드)`, 4);
+    showBanner(`레벨 업! Lv${G.lv}${got.length ? ' — ' + got.join(' · ') : ''}`, 4);
     F.sfx('LEVEL UP!', P.x, P.y - 140, P.facing, true); flashScreen = 0.5; P.flash = 1;
   }
 }
 // ---------- 체력 · 사망 · 쉼터 ----------
 function hurtPlayer(sx) {
-  if (P.inv > 0 || P.state === 'dead') return;
+  if (invNow() || P.state === 'dead') return;
   P.hp--; P.inv = 1.0; P.flash = 1; shake = Math.max(shake, 7); hitstop = 0.08; impactT = 0.03;
   F.streakEnd(P.trail); P.trail = null;
   if (P.hp <= 0) { P.state = 'dead'; P.t = 0; P.vx = 0; P.dying = true; showBanner('쓰러졌다… 마지막 쉼터로', 2); return; }
@@ -391,7 +420,6 @@ function respawn() {
 function checkShelter() {
   const s = ROOMS[room].shelter;
   if (s == null || !P.ground || Math.abs(P.x - s) > 40 || P.state === 'dead') return;
-  if (pressed.up && P.state === 'move') { SK.skillUI.open = true; SK.skillUI.sel = SK.skillUI.sel || 'root'; P.vx = 0; }   // 쉼터에서만 스킬 노드 창
   const key = room + ':' + s, first = !G.lit.has(key), moved = G.save.room !== room || G.save.x !== s;
   if (first || moved || P.hp < G.maxHp) {
     G.lit.add(key); G.save = { room, x: s }; P.hp = G.maxHp;
@@ -464,11 +492,6 @@ function drawShelter() {
   if (lit) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = `rgba(255,170,60,${0.16 + Math.sin(time * 9) * 0.03})`; ctx.beginPath(); ctx.arc(s, GROUND - 70, 120, 0, 7); ctx.fill(); ctx.restore(); }   // 촛불 빛
   if (im) { const k = 64 / PROP.candle_off.height; ctx.drawImage(im, s - im.width * k / 2, GROUND - im.height * k + 4, im.width * k, im.height * k); }
   else { ctx.fillStyle = '#f3e6c4'; ctx.fillRect(s - 10, GROUND - 50, 20, 50); }
-  if (Math.abs(P.x - s) < 40 && P.ground) {   // 쉼터 안내: ↑ 스킬 노드 (포인트가 있으면 강조)
-    ctx.save(); ctx.font = "16px 'Black Han Sans', sans-serif"; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = '#111';
-    const t = G.sp > 0 ? `↑ 스킬 노드 (${G.sp})` : '↑ 스킬 노드';
-    ctx.strokeText(t, s, GROUND - 92); ctx.fillStyle = G.sp > 0 ? '#ffe14a' : '#fff'; ctx.fillText(t, s, GROUND - 92); ctx.restore();
-  }
 }
 
 // F(돌진 키): 짧게 = 잔상 대시(공중 가능) · 길게 = 웅크려 충전 → 뗄 때 돌진. 충전 k(0~1) 만큼 돌진 거리·마무리 베기 칼빛·판정이 커짐
@@ -480,18 +503,104 @@ function chargeMod(name, k) {
     range: [c.range[0], c.range[1] * (1 + 0.5 * k)], shake: c.shake + 7 * k, stop: c.stop + 0.06 * k, dmg: c.dmg * (1 + k) };
   return null;
 }
+// 공격표 + 튜닝 길이 수정(예비·휘두르기·회복 초)
+const atkDef = name => { const c = A.ATTACKS[name], t = TU.timeOf(name); return t && c ? { ...c, ...t } : c; };
+// 공격 아닌 동작의 길이 배율 (동작 시계를 그만큼 느리게)
+const motionScale = key => (!key || A.ATTACKS[key] ? 1 : TU.timeOf(key)?.scale) || 1;
+// 프레임 시계(튜닝 프레임 번호의 기준): 공격 = P.t 그대로 · 그 밖 = 실제 흐른 시간 (길이를 늘리면 프레임 칸이 늘어남)
+const fclock = () => { const k = motionKey(); return k && !A.ATTACKS[k] ? P.t * motionScale(k) : P.t; };
 function startAttack(name, mod = null) {
-  const c = mod ? { ...A.ATTACKS[name], ...mod } : A.ATTACKS[name];
+  const c = mod ? { ...atkDef(name), ...mod } : atkDef(name);
   P.state = 'attack'; P.t = 0; P.atk = c; P.atkName = name; P.atkId++; P.hit = false; P.atkFrom = P.pose; P.seqOn = false; P.halfOn = false; P.hzFx = false; P.hopped = false; P.flashed = false; P.glinted = false; P.cresOn = false;
   F.streakEnd(P.trail); P.trail = null;
   if (name === 'heavyC') P.chargeK = 0;
 }
+// 대시: 기본 1번(공중도 1번) · 3연속 대시(a) = 대시 도중 다시 누르면 이어서 최대 3번, 내내 무적. 땅에서 끝나거나 착지하면 횟수 회복
+const dashMax = () => has('dash3') ? 3 : 1;
+const canDash = () => P.dashN < dashMax() && (P.state === 'move' || (P.state === 'dash' && P.t >= A.DASH_T * 0.55));   // 이어 대시는 앞 대시의 빠른 구간이 끝난 뒤 (입력은 dashBuf 로 미리 받아 둠)
 function startDash() {
-  P.state = 'dash'; P.t = 0; P.vy = 0; P.vx = P.facing * DASH_V;
-  if (!P.ground) P.airDash = false;
+  const dir = (keys.right ? 1 : 0) - (keys.left ? 1 : 0); if (dir) P.facing = dir;
+  P.state = 'dash'; P.t = 0; P.vy = 0; P.vx = P.facing * DASH_V; P.dashN++; P.dashBuf = 0;
   F.streakEnd(P.trail); P.trail = null;
   F.speedSlices(P.x, P.y - 60, P.facing);
   if (P.ground) F.dust(P.x, P.y, P.facing, 1.2);
+}
+
+// ---------- 이동 능력 b·d·e (abilities.js) ----------
+// 패링(b): 짧은 받아넘김 창. 창 안에 적 공격이 닿으면 막고 반격 틈, 가시에 닿으면 반대쪽으로 튕겨 오름 (공중 대시·이단 점프·공중 회전 다시 채움)
+const PARRY = { T: 0.3, on: [0, 0.14], cd: 0.25, bounce: 0.95, wallVx: 380 };
+const parryActive = () => P.state === 'parry' && (TU.frameData('parry', TU.frameOf(fclock()))?.parry ?? (TU.timeOf('parry')?.win != null ? fclock() <= TU.timeOf('parry').win : P.t >= PARRY.on[0] && P.t <= PARRY.on[1]));   // win = 받아넘김 창 길이(초, 도구)
+function startParry() { P.state = 'parry'; P.t = 0; P.parryHit = false; F.streakEnd(P.trail); P.trail = null; }
+function refillAir() { P.dashN = 0; P.djAvail = true; P.airAtk = true; }
+function parried(sx) {
+  if (P.parryHit) return; P.parryHit = true;
+  hitstop = Math.max(hitstop, TU.fxOn('hitstop') ? 0.12 : 0); flashScreen = 0.4; P.flash = 1; shake = Math.max(shake, 5);
+  F.sfx('패링!', P.x + P.facing * 30, P.y - 120, P.facing, true); F.hitBurst(P.x + P.facing * 30, P.y - 50, P.facing, true, 0);
+  for (const e of E) if (e.state !== 'dead' && Math.abs(e.x - sx) < 4) { e.state = 'hurt'; e.t = 0; e.vx = Math.sign(e.x - P.x) * 260; e.vy = 0; }   // 받아넘긴 적은 휘청
+  if (!P.ground) refillAir();
+}
+function parrySpike(s) {   // 가시 패링: 바닥 가시 = 위로, 벽 가시 = 벽 반대쪽 위로
+  P.parryHit = true; refillAir(); P.state = 'move'; P.t = 0; P.ground = false; P.landT = 9; P.noCut = true;
+  P.vy = -JUMP_V * PARRY.bounce;
+  if (s.side === 'left' || s.side === 'right') { const k = s.side === 'right' ? 1 : -1; P.vx = k * PARRY.wallVx; P.facing = k; P.wallLock = 0.14; }
+  hitstop = Math.max(hitstop, TU.fxOn('hitstop') ? 0.06 : 0); P.flash = 1; shake = Math.max(shake, 3);
+  F.sfx('팅!', P.x, P.y - 100, P.facing); F.hitBurst(P.x, P.y - 20, P.facing, false, 0);
+}
+// 가시: 닿으면 1 피해 + 마지막으로 안전하게 섰던 자리로 (패링 중이면 튕김)
+const spikeBox = s => HBOX.rect(s.x, s.x + s.w, s.y, s.y + s.h);
+function checkSpikes() {
+  if (P.state === 'dead') return;
+  const me = HBOX.grow(playerHurtBox(), P.state === 'parry' ? 12 : 0);
+  for (const s of SPIKES) {
+    if (!HBOX.touches(me, spikeBox(s))) continue;
+    if (parryActive()) { parrySpike(s); return; }
+    if (invNow()) continue;   // 무적(3연속 대시 포함)이면 가시밭도 통과
+    hurtPlayer(s.x + s.w / 2); P.inv = Math.max(P.inv, 1);
+    if (P.state !== 'dead') { P.x = P.safe?.x ?? P.x; P.y = P.safe?.y ?? GROUND; P.vx = 0; P.vy = 0; fade = 0.6; }
+    return;
+  }
+}
+// 슈퍼점프(d): 땅에서만. 짧게 웅크렸다(SJ.wind) 아주 높이 솟구침 — 올라가는 동안은 점프 키를 떼도 낮아지지 않음
+const SJ = { wind: 0.16, v: 1600 };
+function startSjump() { P.state = 'sjump'; P.t = 0; P.vx = 0; F.dust(P.x, P.y, -1, 0.6); F.dust(P.x, P.y, 1, 0.6); }
+// 벽통과(e): 앞쪽 5~7블럭 사이에서 가장 가까운 빈 자리로 순간이동. 빈 자리가 없으면 실패
+const PHASE = { min: 5 * BLOCK, max: 7 * BLOCK, step: 8, cd: 0.45, T: 0.12 };
+const solidAt = (x, y) => x - PW < 0 || x + PW > WORLD_W || BLOCKS.some(b => x + PW > b.x && x - PW < b.x + b.w && y > b.y && y - PH < b.y + b.h);
+function tryPhase() {
+  if (P.phaseCd > 0) return;
+  for (let d = PHASE.min; d <= PHASE.max; d += PHASE.step) {
+    const x = P.x + P.facing * d;
+    if (solidAt(x, P.y)) continue;
+    P.ghosts.push({ pose: P.pose, x: P.x, y: P.y, f: P.facing, t: 0 });
+    F.speedSlices(P.x, P.y - 50, P.facing); F.sfx('슉!', P.x, P.y - 100, P.facing);
+    P.x = x; P.vx = P.facing * 120; P.vy = Math.min(P.vy, 0); P.phaseT = PHASE.T; P.phaseCd = PHASE.cd; P.flash = 1; flashScreen = 0.2;
+    return;
+  }
+  P.phaseCd = 0.2; F.sfx('막힘', P.x + P.facing * 40, P.y - 90, P.facing);
+}
+const cancelNow = () => { const k = motionKey(); return !!(k && TU.frameData(k, TU.frameOf(fclock()))?.cancel); };
+// 튜닝 프레임 이벤트 이펙트: dx·dy = 발 기준(앞 +x), s = 크기
+function frameFx(key, i) {
+  for (const e of TU.frameData(key, i)?.fx || []) {
+    const f = P.facing, x = P.x + f * (e.dx || 0), y = P.y + (e.dy || 0), s = e.s ?? 1;
+    if (e.type === 'dust') F.dust(x, y, f, s);
+    else if (e.type === 'hit') F.hitBurst(x, y, f, s > 1, 0);
+    else if (e.type === 'slices') F.speedSlices(x, y, f);
+    else if (e.type === 'sfx') F.sfx(e.text || '!', x, y, f, s > 1);
+    else if (e.type === 'charge') for (let k = 0; k < 4 * s; k++) F.chargeIn(x, y);
+    else if (e.type === 'spark') F.tipSpark(x, y, f);
+    else if (e.type === 'crescent') F.crescent(x, y, f, 300 * s, 0, { life: 0.32 });
+    else if (e.type === 'spin') F.spinFx(x, y, f, 260 * s, { life: 0.35, heat: true });
+    else if (e.type === 'flash') { if (TU.fxOn('flash')) flashScreen = Math.max(flashScreen, 0.5 * s); }
+    else if (e.type === 'shake') shake = Math.max(shake, 6 * s);
+    else if (e.type === 'ghost') { if (TU.fxOn('ghost')) P.ghosts.push({ pose: P.pose, frame: P.frame, x: P.x, y: P.y, f, t: 0 }); }
+    else if (e.type === 'focus') { if (wmat) { const q = wmat.transformPoint(new DOMPoint(x, y)); F.focusLines(q.x, q.y, 0.3 * s); } }
+  }
+}
+// 지금 편집 동작 이름 (튜닝 프레임 데이터의 열쇠)
+function motionKey() {
+  if (P.state === 'attack') return P.atkName;
+  return { dash: 'dash', hurt: 'hurt', dead: 'death', parry: 'parry', sjump: 'sjump' }[P.state] || null;
 }
 
 function update(dt) {
@@ -522,8 +631,10 @@ function update(dt) {
       P.fCh = false;
     }
   }
+  if (pressed.dash) P.dashBuf = 0.18;
+  P.dashBuf = (P.dashBuf || 0) - dt;
 
-  P.t += dt;
+  P.t += dt / motionScale(motionKey());   // 튜닝 길이 배율
   if (P.state === 'move') {
     if (dir) P.facing = dir;
     const acc = P.ground ? ACC : P.wallLock > 0 ? 0 : AIR_ACC;   // 벽을 박찬 직후 잠깐은 입력으로 되돌아가지 않음
@@ -538,20 +649,24 @@ function update(dt) {
     else if (P.jumpBuf > 0 && !P.ground && (ws || P.wallT > 0) && has('wall')) {
       const s = ws || P.wallS;
       P.vy = -JUMP_V * 0.96; P.vx = -s * 420; P.facing = -s; P.wallLock = 0.16; P.jumpBuf = 0; P.wallT = 0; P.kickT = 0; P.kickS = s;
-      P.airDash = true; P.airAtk = true; P.djAvail = true;
+      refillAir();
       F.dust(P.x + s * PW, P.y - 20, -s, 1); shake = Math.max(shake, 2);
     }
-    else if (P.jumpBuf > 0 && !P.ground && P.hasDJ && P.djAvail) {   // 이단 점프 (아이템 획득 후): 공중에서 한 번 더, 앞으로 한 바퀴 돌며
+    else if (P.jumpBuf > 0 && !P.ground && has('dj') && P.djAvail) {   // 이단 점프 (c): 공중에서 한 번 더, 앞으로 한 바퀴 돌며
       P.vy = -JUMP_V * 0.92; P.djAvail = false; P.djT = 0; P.jumpBuf = 0;
       F.dust(P.x, P.y - 6, -1, 0.7); F.dust(P.x, P.y - 6, 1, 0.7); shake = Math.max(shake, 2);
     }
-    if (!keys.jump && P.vy < -200) P.vy += GRAV * 1.6 * dt;   // 짧게 누르면 낮게
+    if (!keys.jump && P.vy < -200 && !P.noCut) P.vy += GRAV * 1.6 * dt;   // 짧게 누르면 낮게 (슈퍼점프·패링 튕김 상승 중은 제외)
+    if (P.vy >= 0) P.noCut = false;
     if (P.atkBuf > 0) {
       P.atkBuf = 0;
       if (!P.ground) { if (P.downBuf > 0 && has('plunge')) startAttack('plunge'); else if (P.airAtk) { P.airAtk = false; startAttack('air'); } }   // 공중: ↓ + 공격 = 내려찍기, 그냥 = 세로 회전 베기
       else { P.combo = 0; startAttack(A.COMBO[0]); }
     }
-    if (pressed.dash && (P.ground || P.airDash)) startDash();
+    if (P.dashBuf > 0 && canDash()) startDash();
+    else if (pressed.parry && has('parry') && P.parryCd <= 0) startParry();
+    else if (pressed.sjump && has('sjump') && P.ground) startSjump();
+    else if (pressed.phase && has('phase')) tryPhase();
   } else if (P.state === 'attack') {
     const c = P.atk, tot = c.wind + c.act + c.rec;
     if (dir && P.t < c.wind * 0.5) P.facing = dir;   // 젖히는 초반엔 방향 바꿈 허용
@@ -587,20 +702,28 @@ function update(dt) {
       if (c.hang && !c.airHop && P.t < c.wind + c.act + 0.04) P.vy = Math.min(P.vy, 40);   // 공중 베기: 휘두르는 동안 잠깐 떠 있음
       if (c.hang && c.airHop && P.t >= c.wind + c.act * 0.6 && P.t < c.wind + c.act + 0.05) P.vy *= Math.pow(0.02, dt);   // 쭉 솟아오르다 회전 끝 무렵 꼭대기에 잠깐 걸림
     }
-    // 콤보 이어가기: 회복 중 버퍼가 있으면 다음 타
-    const nextOk = P.t > c.wind + c.act + c.rec * 0.15;
+    // 튜닝 캔슬 프레임: 점프로 끊기
+    if (cancelNow() && P.jumpBuf > 0 && P.ground && !c.next) { P.state = 'move'; F.streakEnd(P.trail); P.trail = null; P.vy = -JUMP_V; P.ground = false; P.jumpBuf = 0; }
+    // 콤보 이어가기: 회복 중 버퍼가 있으면 다음 타 (캔슬 프레임이면 바로)
+    const nextOk = P.t > c.wind + c.act + c.rec * 0.15 || cancelNow();
     if (P.atkBuf > 0 && nextOk && (P.ground || P.hopped) && P.atkName !== 'air') {
       const i = A.COMBO.indexOf(P.atkName);
       if (i >= 0) { P.atkBuf = 0; P.combo = (i + 1) % A.COMBO.length; startAttack(A.COMBO[P.combo]); }   // 3타 뒤엔 다시 1타 (뒤에 남은 칼을 앞으로 베어 넘김)
     }
     if (!P.ground && P.atkName === 'air' && has('plunge') && P.downBuf > 0 && (P.atkBuf > 0 || P.t < 0.1)) { P.atkBuf = 0; startAttack('plunge'); }   // 공중 회전 중 언제든 ↓ + 공격 = 내려찍기 · 공격을 먼저 누르고 ↓ 를 0.1초 안에 눌러도 내려찍기로 바뀜
-    else if (pressed.dash && P.t > c.wind + c.act && (P.ground || P.airDash)) startDash();
+    else if (P.dashBuf > 0 && (P.t > c.wind + c.act || cancelNow()) && canDash()) startDash();
     else if (c.next && P.t >= tot) startAttack(c.next, chargeMod(c.next, P.chargeK || 0));   // 강공격 ① → ② 돌진 마무리로 바로 이어짐 (충전만큼 키움)
     else if (P.t >= tot) { P.state = 'move'; F.streakEnd(P.trail); P.trail = null; if (c.endFlip) P.facing = -P.facing; }   // 뒤로 돈 채 끝나는 공격(2타): 그 쪽을 보고 대기
   } else if (P.state === 'dash') {
-    if (P.t < A.DASH_T * 0.6) { P.vy = 0; P.ghosts.push({ pose: P.pose, x: P.x, y: P.y, f: P.facing, t: 0 }); }   // 매 프레임 잔상
+    if (P.t < A.DASH_T * 0.6) { P.vy = 0; if (TU.fxOn('ghost') && TU.frameData('dash', TU.frameOf(fclock()))?.ghost !== false) P.ghosts.push({ pose: P.pose, x: P.x, y: P.y, f: P.facing, t: 0 }); }   // 매 프레임 잔상
     else P.vx *= Math.pow(0.002, dt);
-    if (P.t >= A.DASH_T) P.state = 'move';
+    if (P.dashBuf > 0 && canDash()) startDash();   // 3연속 대시: 대시 도중 다시 눌러 이어감
+    else if (P.t >= A.DASH_T) { P.state = 'move'; if (P.ground) P.dashN = 0; }
+  } else if (P.state === 'parry') {
+    P.vx *= Math.pow(0.02, dt); if (!P.ground) P.vy = Math.min(P.vy, 260);
+    if (P.t >= PARRY.T) { P.state = 'move'; if (!P.parryHit) P.parryCd = PARRY.cd; }
+  } else if (P.state === 'sjump') {
+    if (P.t >= SJ.wind) { P.state = 'move'; P.vy = -SJ.v; P.ground = false; P.noCut = true; P.landT = 9; F.dust(P.x, P.y, -1, 1.6); F.dust(P.x, P.y, 1, 1.6); shake = Math.max(shake, 4); F.speedSlices(P.x, P.y - 40, P.facing); }
   } else if (P.state === 'hurt') {
     P.vx *= Math.pow(0.01, dt);
     if (P.t >= A.HURT_T) P.state = 'move';
@@ -613,17 +736,23 @@ function update(dt) {
     if (DEATH.F.length && P.t >= ts && P.t - dt < ts) { const s = deathSword(ts); shake = Math.max(shake, 3); F.dust(s.g[0], P.y, -1, 0.6); F.dust(s.g[0], P.y, 1, 0.6); }   // 칼이 땅에 박히는 순간
   }
 
+  // 튜닝 프레임: 이 프레임에 걸린 이펙트 이벤트 · 이동 속도 배율
+  const mk = motionKey();
+  if (mk) for (let i = TU.frameOf(fclock() - dt) + 1; i <= TU.frameOf(fclock()); i++) frameFx(mk, i);
+  const spd = (mk && TU.frameData(mk, TU.frameOf(fclock()))?.speed) ?? 1;
+
   // 물리
   if (!(P.state === 'dash' && P.t < A.DASH_T * 0.6)) P.vy += GRAV * dt;
   P.vy = Math.min(P.vy, 1100);
   const yPrev = P.y, xPrev = P.x;
-  P.x += P.vx * dt; P.y += P.vy * dt;
+  P.x += P.vx * dt * spd; P.y += P.vy * dt;
   P.x = Math.max(30, Math.min(WORLD_W - 30, P.x));
   collideBlocks(xPrev, yPrev);
   const g = P.vy >= 0 ? groundAt(P.x, yPrev, P.y) : null;
   const wasGround = P.ground;
   if (g !== null) {
-    P.y = g; P.vy = 0; P.ground = true; P.airDash = true; P.airAtk = true; P.djAvail = true;
+    P.y = g; P.vy = 0; P.ground = true; P.airAtk = true; P.djAvail = true; P.noCut = false;
+    if (P.state !== 'dash') P.dashN = 0;
     if (!wasGround) {
       P.landT = 0; F.dust(P.x, P.y, -1, 0.7); F.dust(P.x, P.y, 1, 0.7);
       if (P.state === 'attack' && P.atk.plunge && P.t >= P.atk.wind) {   // 내려찍기 착지: 충격파 — 양옆으로 큰 먼지·흔들림, 둘레 적에게 판정
@@ -637,8 +766,10 @@ function update(dt) {
     if (wasGround) P.coyote = 0.08;
     P.ground = false;
   }
+  if (P.ground && P.state === 'move' && !SPIKES.some(s => HBOX.touches(HBOX.grow(playerHurtBox(), 30), spikeBox(s)))) P.safe = { x: P.x, y: P.y };   // 가시에 찔리면 돌아올 자리
+  P.phaseT -= dt; P.phaseCd = (P.phaseCd || 0) - dt; P.parryCd -= dt;
   P.coyote -= dt; P.landT += dt; P.djT += dt; P.kickT = (P.kickT ?? 9) + dt; P.inv = Math.max(0, P.inv - dt); P.wallT = (P.wallT || 0) - dt; P.wallLock = (P.wallLock || 0) - dt;
-  checkExits(); checkItems(); checkShelter();
+  checkExits(); checkItems(); checkShelter(); checkSpikes();
   updateFoes(dt); updateCheese(dt); if (BOSS) BOSS.update(dt);
   if (P.state === 'dead' && P.dying && P.t > 2.2) respawn();   // 쓰러지면 잠시 뒤 마지막 쉼터에서
   // 땅에서 미끄러질 때 먼지
@@ -666,7 +797,7 @@ function update(dt) {
   // 수평 베기 맛내기: 휘두르는 동안 잔상(몸 겹그림)·속도선·바닥 먼지 + 시작 순간 몸 쏠림
   if (P.state === 'attack' && (P.atk.hz || A.isPath(P.atk))) {
     const c = P.atk, t0 = c.wind, t1 = c.wind + c.act;
-    if (P.t >= t0 && P.t <= t1 + 0.04 && Math.floor(P.t * 60) !== P._gf) {
+    if (P.t >= t0 && P.t <= t1 + 0.04 && Math.floor(P.t * 60) !== P._gf && TU.fxOn('ghost') && TU.frameData(P.atkName, TU.frameOf(P.t))?.ghost !== false) {
       P._gf = Math.floor(P.t * 60);
       P.ghosts.push({ pose: P.pose, frame: P.frame, x: P.x, y: P.y, f: P.facing, t: 0 });
     }
@@ -688,8 +819,9 @@ function update(dt) {
   if (P.state === 'attack') {
     const c = P.atk;
     // 돌진 베기(lunge 큰 공격)·공중 회전(sweep)은 휘두르는 내내 지나가며 닿는 순간 맞음, 나머지는 hitAt 한 순간
-    const sw = c.lunge >= 300 || c.sweep;
-    if (sw ? (P.t >= c.wind && P.t <= c.wind + c.act) : (!P.hit && P.t >= c.wind + c.act * c.hitAt)) tryHit(sw);
+    const sw = c.lunge >= 300 || c.sweep, hv = TU.frameData(P.atkName, TU.frameOf(P.t))?.hit;   // 튜닝: 판정 켜기·끄기 프레임
+    if (hv === 'on') tryHit(true);
+    else if (hv !== 'off' && (sw ? (P.t >= c.wind && P.t <= c.wind + c.act) : (!P.hit && P.t >= c.wind + c.act * c.hitAt))) tryHit(sw);
   }
 
   // 허수아비
@@ -949,6 +1081,8 @@ function pose(dt) {
     const r = atkPose(P.atk, P.t, P.atkFrom);
     p = r.pose; P.th = r.th; P.phase = r.phase; P.view = r.view || 'side'; P.tipL = r.tipL; P.low = r.low;
   } else if (P.state === 'dash') p = A.dash(P.t);
+  else if (P.state === 'parry') p = A.parry(P.t, PARRY.T);
+  else if (P.state === 'sjump') p = A.sjump(P.t, SJ.wind);
   else if (P.state === 'hurt') p = A.hurt(P.t);
   else if (P.state === 'dead') p = A.death(P.t);
   else if (!P.ground) {
@@ -968,6 +1102,7 @@ function pose(dt) {
   P.carryT = (P.carryT ?? 9) + dt;
   // (칼 메기·뽑기 짧은 동작은 사용자 요청으로 뺌) 아직 등에 멘 상태(carry 'back')로 잠깐 서 있는 순간엔 칼은 등에 둔 채 팔만 편히 내림 → 방향 바꿀 때 칼이 어깨로 튀지 않음
   if (P.state === 'move' && P.carry === 'back' && !(p.sheath > 0.5)) p = { ...p, sheath: 1, nU: 8, nF: 18 };
+  const mk = motionKey(); if (mk) p = TU.applyPose(mk, fclock(), p);   // 튜닝: 프레임별 자세 수정
   P.pose = p;
 }
 
@@ -1010,7 +1145,7 @@ function hitDummy(c) {
 // ---------- 그리기 ----------
 function cam() {
   const cx = Math.max(W / 2, Math.min(WORLD_W - W / 2, P.x));
-  const sx = (Math.random() - 0.5) * shake * 2, sy = (Math.random() - 0.5) * shake * 2;
+  const sk = TU.fxOn('shake') ? shake : 0, sx = (Math.random() - 0.5) * sk * 2, sy = (Math.random() - 0.5) * sk * 2;
   return { x: cx - W / 2 - sx, y: sy };
 }
 
@@ -1051,6 +1186,7 @@ function render() {
   const fx = P.x - c.x, fy = P.y - camY - 70;
   ctx.setTransform(view * zoom, 0, 0, view * zoom, view * (fx - fx * zoom), view * (fy - fy * zoom + c.y));
   ctx.translate(-c.x, -camY);
+  if (CHARVIEW.zoom) { const k = view * CHARVIEW.k; ctx.setTransform(k, 0, 0, k, cv.width / 2 - k * (P.x + CHARVIEW.dx), cv.height * 0.6 - k * (P.y - 46 + CHARVIEW.dy)); }   // 캐릭터 확대 뷰 (도구)
 
   if (theme()) drawStage(c);
   else {
@@ -1064,6 +1200,8 @@ function render() {
   }
 
   if (BLOCKS.length) pixLayer(drawBlocks, 24, 4);   // 벽 덩어리 (벽 차기 지형)
+  if (SPIKES.length) drawSpikes(ctx);
+  drawSigns(ctx);
 
   // 그림자 (발밑 타원)
   shadow(P.x, groundBelow(P.x, P.y), 34);
@@ -1094,18 +1232,27 @@ function render() {
       else drawRig(c, rig, gh.pose, gh.x, gh.y, gh.f, { ghost: 0.28 * (1 - gh.t / 0.22) });
     }
     if (P.inv > 0 && P.state !== 'dead' && Math.floor(time * 20) % 2) return;   // 맞은 뒤 무적 동안 깜빡임
-    const mv = moveCut();
-    if (P.state === 'dead' && DEATH.F.length) drawDeath(c);
-    else if (mv) drawMove(c, mv, P.x, P.y, P.facing);
-    else if (P.frame && FR[P.frame.i]) drawFrame(c, P.frame, P.x, P.y, P.facing, 1);
-    else if ((P.view === 'front' || P.view === 'back') && frig) drawView(c, P.view, P.x, P.y, P.facing, P.tipL, { flash: P.flash, low: P.low, air: !P.ground, bladeWhite: F.bladeWhite() });
-    else drawRig(c, rig, P.pose, P.x, P.y, P.view === 'flip' ? -P.facing : P.facing, { flash: P.flash, bladeWhite: F.bladeWhite() });
+    if (P.phaseT > PHASE.T * 0.5) return;   // 벽통과: 도착 직후 잠깐 안 보임
+    if (PREVIEW.on && PREVIEW.onion) for (const d of [-1, 1]) { const q = previewPoseAt(PREVIEW.t + d / TU.FPS); if (q) drawRig(c, rig, q, P.x, P.y, P.facing, { ghost: 0.22 }); }
+    drawKnight(c);
+    if (COMPARE.on && PREVIEW.on) drawCompareB(c);   // 저장본 비교: B 를 옆(또는 겹쳐)에
   }, 24);   // 몸도 도트로 (색 약 10단계)
 
   // 앞쪽 이펙트
   wmat = ctx.getTransform();
+  if (CHARVIEW.bones) captureBones();
   drawFG(c);   // 캐릭터 앞을 스치는 흐린 앞 판 (이펙트는 그 위)
   pixLayer(c => { F.drawTrails(c, time, true); F.drawFlips(c, true); F.drawSprites(c, true); });
+  if (COMPARE.on && PREVIEW.on) {   // 비교 표시: A = 지금 편집 · B = 고른 저장본
+    ctx.save(); ctx.font = "bold 18px 'Noto Sans KR', sans-serif"; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = '#111';
+    const lab = (t, x, col) => { ctx.strokeText(t, x, P.y - 130); ctx.fillStyle = col; ctx.fillText(t, x, P.y - 130); };
+    if (COMPARE.mode === 'side') { lab('A', P.x, '#ffe14a'); lab('B', P.x + COMPARE.gap, '#2fe6ff'); } else lab('A · B(파랑)', P.x, '#2fe6ff');
+    ctx.restore();
+  }
+  if (P.state === 'parry') {   // 패링 창: 받아넘기는 동안 초록 고리 (임시 표시)
+    const on = parryActive(); ctx.save(); ctx.strokeStyle = on ? ABIL.parry.color : 'rgba(47,158,91,0.35)'; ctx.lineWidth = on ? 5 : 2;
+    ctx.beginPath(); ctx.arc(P.x + P.facing * 8, P.y - 40, 44 + (on ? 4 * Math.sin(time * 60) : 0), 0, 7); ctx.stroke(); ctx.restore();
+  }
   if (opt.colliders) {
     for (const col of combatCols) if (col.until >= time) HBOX.drawBox(ctx, col.shape, col.side === 'player' ? '#ffd23a' : '#ff5d73');
     HBOX.drawBox(ctx, playerHurtBox(), '#55eeff'); HBOX.drawBox(ctx, HBOX.foot(P.x, P.y), '#ffffff');
@@ -1115,23 +1262,23 @@ function render() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   F.drawFocus(ctx, cv.width, cv.height);
   // 임팩트 컷: 1~2프레임 색 반전 (젠존제식 타격 순간)
-  if (impactT > 0) { ctx.globalCompositeOperation = 'difference'; ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height); ctx.globalCompositeOperation = 'source-over'; }
+  if (impactT > 0 && TU.fxOn('impact')) { ctx.globalCompositeOperation = 'difference'; ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height); ctx.globalCompositeOperation = 'source-over'; }
 
   if (fade > 0) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = `rgba(10,8,20,${fade})`; ctx.fillRect(0, 0, cv.width, cv.height); }   // 방 이동 페이드
   // 화면 번쩍 (막타)
-  if (flashScreen > 0) {
+  if (flashScreen > 0 && TU.fxOn('flash')) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalCompositeOperation = 'lighter';
     ctx.fillStyle = `rgba(255,240,200,${flashScreen * 0.35})`; ctx.fillRect(0, 0, cv.width, cv.height);
     ctx.globalCompositeOperation = 'source-over';
   }
+  if (CHARVIEW.bones) drawBones();
   // HUD (논리 화면 1280×720 좌표): 하트 · 레벨 배지 · 치즈 막대 · 보스 막대 · 알림 띠, 쉼터에서 연 스킬 노드 창
   ctx.setTransform(view, 0, 0, view, 0, 0);
   const nx = LV_XP[G.lv + 1];
-  HUD.drawHUD(ctx, { hp: Math.max(0, P.hp), maxHp: G.maxHp, lv: G.lv, xp: G.xp, xp0: LV_XP[G.lv], xp1: nx, sp: G.sp, time,
+  HUD.drawHUD(ctx, { hp: Math.max(0, P.hp), maxHp: G.maxHp, lv: G.lv, xp: G.xp, xp0: LV_XP[G.lv], xp1: nx, time,
     boss: bossName && BOSS ? { name: bossName, pct: Math.max(0, BOSS.hp / BOSS.max) } : null,
     banner: bannerT > 0 ? { text: bannerText, a: Math.min(1, bannerT / 0.4) } : null }, W, H);
-  if (SK.skillUI.open) HUD.drawSkills(ctx, G, SK.skillUI, W, H, time);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 // ---------- 무대: 방마다 테마 (city 밤의 뒷골목 · sewer 하수도 · forest 보관용 숲) — art/bg/<테마> ----------
@@ -1175,7 +1322,7 @@ const TIERS = [   // 깊이 단 모양 (모든 테마 공통): p = 카메라 따
 // 물건이 배경에서 떠 보이지 않게 (2026-10-29): 앞 단도 안개를 조금 먹고 밝기는 중경 판(0.76) 근처로, 채도를 낮추고 장면 색을 곱하고, 밑동은 그늘로 어둡게 + 바닥 접지 그림자
 const FG = { p: 1.18, blur: 0.6, bright: 0.74, cell: 7, s: 0.5 };
 const TH = {};   // 구워 둔 테마 { planes, fg, floor, tiers:[{ground, obj}] }
-const theme = () => TH[ROOMS[room].theme] || TH[THEMES[ROOMS[room].theme]?.fallback] || TH.forest;
+const theme = () => ROOMS[room].theme === 'none' ? null : TH[ROOMS[room].theme] || TH[THEMES[ROOMS[room].theme]?.fallback] || TH.forest;
 let camY = 0;   // 카메라 세로: 높이 뛰면 살짝 따라 올라감 (레이어마다 p 만큼만 → 위아래 시차)
 async function loadTheme(name) {
   const D = THEMES[name], dir = `../art/bg/${name}/`, t = { def: D, planes: [], frontPlanes: [], tiers: [] };
@@ -1291,6 +1438,206 @@ function drawBlocks(c) {
     c.fillStyle = '#111'; for (let y = b.y + 26; y < b.y + b.h - 10; y += 46) { c.fillRect(b.x + 5, y, 5, 5); c.fillRect(b.x + b.w - 10, y, 5, 5); }
   }
 }
+// 가시: 검은 테두리 삼각형 줄 (side = 끝이 향하는 쪽). 그림이 나오면 교체
+function drawSpikes(c) {
+  for (const s of SPIKES) {
+    const vert = s.side === 'left' || s.side === 'right', n = Math.max(1, Math.round((vert ? s.h : s.w) / 16)), L = (vert ? s.h : s.w) / n;
+    c.fillStyle = '#d8dce8'; c.strokeStyle = '#111'; c.lineWidth = 2;
+    for (let i = 0; i < n; i++) {
+      c.beginPath();
+      if (s.side === 'up') { c.moveTo(s.x + i * L, s.y + s.h); c.lineTo(s.x + (i + 0.5) * L, s.y); c.lineTo(s.x + (i + 1) * L, s.y + s.h); }
+      else if (s.side === 'down') { c.moveTo(s.x + i * L, s.y); c.lineTo(s.x + (i + 0.5) * L, s.y + s.h); c.lineTo(s.x + (i + 1) * L, s.y); }
+      else if (s.side === 'right') { c.moveTo(s.x, s.y + i * L); c.lineTo(s.x + s.w, s.y + (i + 0.5) * L); c.lineTo(s.x, s.y + (i + 1) * L); }
+      else { c.moveTo(s.x + s.w, s.y + i * L); c.lineTo(s.x, s.y + (i + 0.5) * L); c.lineTo(s.x + s.w, s.y + (i + 1) * L); }
+      c.closePath(); c.fill(); c.stroke();
+    }
+  }
+}
+function drawSigns(c) {   // 시험 구간 안내 글 (테스트장)
+  const S = ROOMS[room].signs; if (!S) return;
+  c.save(); c.font = "15px 'Noto Sans KR', sans-serif"; c.textAlign = 'left'; c.lineWidth = 4; c.strokeStyle = '#111'; c.fillStyle = '#ffe14a';
+  for (const [x, t] of S) { c.strokeText(t, x, 60); c.fillText(t, x, 60); c.fillRect(x, 68, 2, GROUND - 68); }
+  for (let x = 0; x < WORLD_W; x += BLOCK) { c.fillStyle = x % (BLOCK * 5) ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.3)'; c.fillRect(x, GROUND + 2, 1, 10); }   // 블럭 눈금 (5칸마다 진하게)
+  c.restore();
+}
+
+function drawKnight(c, ghost) {
+  const adj = TU.radjAt(motionKey(), fclock());   // 프레임별 부위 위치 (튜닝)
+  if (ghost) { drawRig(c, rig, P.pose, P.x, P.y, P.view === 'flip' ? -P.facing : P.facing, { ghost, adj }); return; }
+  const mv = moveCut();
+  if (P.state === 'dead' && DEATH.F.length) drawDeath(c);
+  else if (mv) drawMove(c, mv, P.x, P.y, P.facing);
+  else if (P.frame && FR[P.frame.i]) drawFrame(c, P.frame, P.x, P.y, P.facing, 1);
+  else if ((P.view === 'front' || P.view === 'back') && frig) drawView(c, P.view, P.x, P.y, P.facing, P.tipL, { flash: P.flash, low: P.low, air: !P.ground, bladeWhite: F.bladeWhite(), adj });
+  else drawRig(c, rig, P.pose, P.x, P.y, P.view === 'flip' ? -P.facing : P.facing, { flash: P.flash, bladeWhite: F.bladeWhite(), adj });
+}
+
+// ---------- 캐릭터 확대 뷰 · 본·관절 보기 (캐릭터 테스트 도구) ----------
+// zoom = 캐릭터 중심으로 k 배 · bones = 부위마다 축(점)·관절(원)·본(축 → 관절 선). cap = 지난 그리기의 부위별 화면 변환 (도구가 끌기 판정에 씀)
+const CHARVIEW = { zoom: false, k: 4, dx: 0, dy: 0, bones: false, sel: null, hot: null, size: 1, labels: true, cap: [], rig: null };
+let boneCtx = null;
+function captureBones() {
+  const cap = [], mv = moveCut();
+  CHARVIEW.cap = []; CHARVIEW.rig = null;
+  if ((P.state === 'dead' && DEATH.F.length) || mv || (P.frame && FR[P.frame.i])) return;   // 통그림 구간 = 리그 아님
+  boneCtx ||= Object.assign(document.createElement('canvas'), { width: 1, height: 1 }).getContext('2d');
+  boneCtx.setTransform(wmat);
+  const front = (P.view === 'front' || P.view === 'back') && frig, adj = TU.radjAt(motionKey(), fclock());
+  if (front) drawView(boneCtx, P.view, P.x, P.y, P.facing, P.tipL, { low: P.low, air: !P.ground, capture: cap, adj });
+  else drawRig(boneCtx, rig, P.pose, P.x, P.y, P.view === 'flip' ? -P.facing : P.facing, { capture: cap, adj });
+  const R = front ? frig : rig, name = p => Object.keys(R).find(k => R[k] === p);
+  CHARVIEW.rig = front ? 'front' : 'side';
+  CHARVIEW.cap = cap.map(c => ({ ...c, name: c.p.name || name(c.p) })).filter(c => c.name);
+}
+// 본·관절 그리기: 본 = 축(뿌리 쪽 넓음) → 자식이 붙는 관절(끝 뾰족) 쐐기 = 부모 → 자식 방향. 원 = 관절, 네모 = 축.
+// 색: 가까운 쪽 하늘 · 먼 쪽 보라 · 가운데 흰색 / 고른 부위 금색 · 그 자식들 주황 · 부모 줄기 분홍. 자식 축이 붙는 관절에서 떨어져 있으면 점선
+const BONE_COL = { n: '#2fe6ff', f: '#9b8cff', c: '#ffffff' };
+function boneFamily(kind, sel) {
+  const H = HIER[kind] || {}, kids = new Set(), up = new Set();
+  const walk = p => { for (const k of childrenOf(kind, p)) { kids.add(k); walk(k); } };
+  if (sel) { walk(sel); for (let p = H[sel]?.parent; p; p = H[p]?.parent) up.add(p); }
+  return { H, kids, up };
+}
+function drawBones() {
+  const s = CHARVIEW.size * (devicePixelRatio || 1), kind = CHARVIEW.rig, { H, kids, up } = boneFamily(kind, CHARVIEW.sel);
+  const at = {}; for (const c of CHARVIEW.cap) at[c.p.name] ??= c;
+  const P2 = (m, x, y) => m.transformPoint(new DOMPoint(x, y));
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const colOf = n => n === CHARVIEW.sel ? '#f2b33d' : kids.has(n) ? '#ffb347' : up.has(n) ? '#ff3d7f' : BONE_COL[H[n]?.side || 'c'];
+  // 고른 부위 그림 테두리
+  const sc = at[CHARVIEW.sel];
+  if (sc) {
+    const q = [[-sc.p.px, -sc.p.py], [sc.p.w - sc.p.px, -sc.p.py], [sc.p.w - sc.p.px, sc.p.h - sc.p.py], [-sc.p.px, sc.p.h - sc.p.py]].map(([x, y]) => P2(sc.m, x, y));
+    ctx.strokeStyle = 'rgba(242,179,61,0.7)'; ctx.lineWidth = 1.5 * s; ctx.setLineDash([4 * s, 3 * s]); ctx.beginPath(); q.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
+  }
+  // 본 (쐐기): 축 → 각 관절
+  for (const n in at) {
+    const c = at[n], pv = P2(c.m, 0, 0), col = colOf(n), dim = c.far && !(n === CHARVIEW.sel || kids.has(n)) ? 0.55 : 1;
+    ctx.globalAlpha = dim;
+    for (const [jn, j] of Object.entries(c.p.j)) {
+      const q = P2(c.m, j[0], j[1]), dx = q.x - pv.x, dy = q.y - pv.y, L = Math.hypot(dx, dy) || 1, w = Math.min(7 * s, L * 0.14), nx = -dy / L * w, ny = dx / L * w;
+      ctx.fillStyle = col + '55'; ctx.strokeStyle = col; ctx.lineWidth = 1.5 * s;
+      ctx.beginPath(); ctx.moveTo(pv.x + nx, pv.y + ny); ctx.lineTo(q.x, q.y); ctx.lineTo(pv.x - nx, pv.y - ny); ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+  }
+  // 부모 관절 → 자식 축 (붙는 자리가 떨어져 있으면 점선)
+  for (const n in at) {
+    const h = H[n], par = h?.parent && at[h.parent]; if (!par || !par.p.j[h.joint]) continue;
+    const a = P2(par.m, ...par.p.j[h.joint]), b = P2(at[n].m, 0, 0);
+    if (Math.hypot(a.x - b.x, a.y - b.y) > 2 * s) { ctx.globalAlpha = 1; ctx.strokeStyle = colOf(n); ctx.lineWidth = 1.5 * s; ctx.setLineDash([3 * s, 3 * s]); ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); ctx.setLineDash([]); }
+  }
+  // 관절 (원) · 축 (네모) · 이름
+  ctx.font = `${11 * s}px 'Noto Sans KR', sans-serif`;
+  for (const n in at) {
+    const c = at[n], pv = P2(c.m, 0, 0), col = colOf(n), sel = n === CHARVIEW.sel;
+    ctx.globalAlpha = c.far && !sel && !kids.has(n) ? 0.6 : 1;
+    for (const [jn, j] of Object.entries(c.p.j)) {
+      const q = P2(c.m, j[0], j[1]), hot = CHARVIEW.hot === n + ':' + jn;
+      ctx.fillStyle = hot ? '#fff' : col; ctx.strokeStyle = '#111'; ctx.lineWidth = 1.5 * s;
+      ctx.beginPath(); ctx.arc(q.x, q.y, (hot ? 7 : 4.5) * s, 0, 7); ctx.fill(); ctx.stroke();
+      if (sel && CHARVIEW.labels) { ctx.fillStyle = '#fff'; ctx.fillText(jn, q.x + 7 * s, q.y - 5 * s); }
+    }
+    ctx.fillStyle = sel ? '#ff3d7f' : col; ctx.strokeStyle = '#111';
+    ctx.beginPath(); ctx.rect(pv.x - 3.5 * s, pv.y - 3.5 * s, 7 * s, 7 * s); ctx.fill(); ctx.stroke();
+    if (CHARVIEW.labels && (sel || kids.has(n) || CHARVIEW.hot?.startsWith(n + ':'))) { ctx.fillStyle = sel ? '#ff3d7f' : '#ffb347'; ctx.font = `bold ${11 * s}px 'Noto Sans KR', sans-serif`; ctx.fillText(H[n]?.name || n, pv.x + 8 * s, pv.y + 13 * s); ctx.font = `${11 * s}px 'Noto Sans KR', sans-serif`; }
+  }
+  ctx.restore();
+}
+// 다른 자세로 그렸을 때 부위별 화면 변환 (도구가 자세 값 1 이 화면에서 몇 도인지 잴 때 씀, 옆모습 리그만)
+function captureAt(pose) {
+  const cap = [], o = {};
+  boneCtx.setTransform(wmat);
+  drawRig(boneCtx, rig, pose, P.x, P.y, P.view === 'flip' ? -P.facing : P.facing, { capture: cap, adj: TU.radjAt(motionKey(), fclock()) });
+  for (const c of cap) o[c.p.name] ??= c.m;
+  return o;
+}
+// 도구가 관절·축을 끄는 동안 리그를 바로 고침 (다시 굽지 않음). 놓으면 도구가 리그 덮어쓰기로 저장 → setRigPatch 로 다시 만듦
+function liveRig(which, part, fn) {
+  const R = which === 'front' ? frig : rig, a = R?.def.parts[part], p = R?.[part]; if (!a || !p) return;
+  fn(a);
+  const K = R.K; p.px = a.pivot[0] * K; p.py = a.pivot[1] * K;
+  for (const k in a.joints) p.j[k] = [(a.joints[k][0] - a.pivot[0]) * K, (a.joints[k][1] - a.pivot[1]) * K];
+  if (which === 'side' && R.thigh && R.shin && R.hips) R.hipH = (R.thigh.j.knee[1] + R.shin.j.sole[1] + (R.hips.j.hipN?.[1] ?? 0)) / SS;
+}
+
+// ---------- 저장본 (캐릭터 테스트 도구): 튜닝(키·이펙트 끄기·프레임) + 리그 덮어쓰기(옆·정면) + 이펙트 색·그림 ----------
+// 게임은 data/active.json 이 가리키는 data/saves/<이름>.json 을 시작할 때 적용 (없으면 예전 data/tune.json)
+let RIG_DIR = '../art/knight/rig_urban', FRIG_DIR = '../art/knight/rig_front_urban';
+const RIGPATCH = { side: {}, front: {} };
+const FXIMG = {};   // 이펙트 그림 이름 → 바꾼 그림 경로 (프로젝트 기준 art/…)
+function fitPathK() { const p = { ...A.IDLE, nU: 90, nF: 0, swL: 1, torso: 0 }; A.aim(p, 90); const b = bladeAt(rig, p, 0, 0, 1); A.PATH_K.k = Math.hypot(b.t[0] - b.s[0], b.t[1] - b.s[1]) / 118; }   // 칼을 늘리지 않고 닿게 경로를 리그 크기에 맞춤
+async function setRigPatch(which, patch = {}) {
+  RIGPATCH[which] = structuredClone(patch);
+  if (which === 'side') { rig = await loadRig(RIG_DIR, patch); fitPathK(); }
+  else if (FRIG_DIR) try { frig = await loadRig(FRIG_DIR, patch); } catch (e) {}
+}
+const captureBundle = () => ({ version: 1, tune: structuredClone(TU.TUNE), rig: structuredClone(RIGPATCH), fx: { col: structuredClone(F.FXCOL), dmg: structuredClone(F.DMG_STYLE), img: { ...FXIMG } } });
+async function applyBundle(b = {}) {
+  TU.setTune(b.tune || {});
+  Object.assign(F.FXCOL, structuredClone(F.FXCOL_DEFAULT), structuredClone(b.fx?.col || {}));
+  for (const k in F.DMG_STYLE) F.DMG_STYLE[k] = [...(b.fx?.dmg?.[k] || F.DMG_DEFAULT[k])];
+  F.restoreImgs(); for (const k in FXIMG) delete FXIMG[k];
+  for (const [k, src] of Object.entries(b.fx?.img || {})) { FXIMG[k] = src; await F.replaceImg(k, '../' + src); }
+  await setRigPatch('side', b.rig?.side || {}); await setRigPatch('front', b.rig?.front || {});
+}
+// 비교: 미리보기에서 B 저장본의 자세·리그로 한 명 더 (side = 옆에 나란히 · overlay = 같은 자리에 반투명)
+const COMPARE = { on: false, mode: 'side', gap: 230, b: null, rig: null, frig: null };
+async function setCompare(b, mode) {
+  if (mode) COMPARE.mode = mode;
+  if (!b) { COMPARE.on = false; COMPARE.b = null; return; }
+  COMPARE.b = b; COMPARE.rig = await loadRig(RIG_DIR, b.rig?.side || {});
+  try { COMPARE.frig = await loadRig(FRIG_DIR, b.rig?.front || {}); } catch (e) { COMPARE.frig = null; }
+  COMPARE.on = true;
+}
+function drawCompareB(c) {
+  const keepM = TU.TUNE.motions, keepRig = rig, keepF = frig, x0 = P.x, side = COMPARE.mode === 'side';
+  TU.TUNE.motions = COMPARE.b.tune?.motions || {}; rig = COMPARE.rig; frig = COMPARE.frig || frig;
+  previewApply(PREVIEW.key, PREVIEW.t); pose(0);
+  if (side) P.x += COMPARE.gap;
+  drawKnight(c, side ? 0 : 0.5);
+  P.x = x0; TU.TUNE.motions = keepM; rig = keepRig; frig = keepF;
+  previewApply(PREVIEW.key, PREVIEW.t); pose(0);
+}
+
+// ---------- 캐릭터 테스트: 프레임 미리보기 ----------
+// 시뮬레이션을 멈추고 고른 동작의 t 초 자세를 제자리에 그림. 앞뒤 프레임 반투명(onion), 판정 도형 표시
+const PREVIEW = { on: false, key: 'slash1', t: 0, play: false, speed: 0.25, onion: true };
+const MOTIONS = () => [...Object.keys(A.ATTACKS), 'dash', 'parry', 'sjump', 'hurt', 'death'];
+// 동작 길이(초): 원래 길이(base) × 길이 배율 — 미리보기 시간 PREVIEW.t 는 이 실제 시간
+const motionBase = key => { const c = A.ATTACKS[key]; return c ? c.wind + c.act + c.rec : ({ dash: A.DASH_T, parry: PARRY.T, sjump: SJ.wind, hurt: A.HURT_T, death: A.DEATH_T }[key] ?? 0.5); };
+function motionLen(key) {
+  const c = atkDef(key);
+  if (c) return c.wind + c.act + c.rec;
+  return motionBase(key) * motionScale(key);
+}
+function previewApply(key, t) {
+  const c = atkDef(key);
+  if (c) { P.state = 'attack'; P.atk = c; P.atkName = key; P.atkFrom = A.IDLE; }
+  else P.state = { dash: 'dash', parry: 'parry', sjump: 'sjump', hurt: 'hurt', death: 'dead' }[key] || 'move';
+  P.ground = !(c?.airOnly || key === 'plunge'); P.y = P.ground ? groundBelow(P.x, GROUND) : GROUND - 160; P.t = c ? t : t / motionScale(key); P.vx = 0; P.vy = 0;   // 공격 아닌 동작: 실제 시간 → 동작 시계
+}
+function previewPoseAt(t) {
+  if (t < 0 || t > motionLen(PREVIEW.key)) return null;
+  const keep = PREVIEW.t; previewApply(PREVIEW.key, t); pose(0); const q = P.pose;
+  previewApply(PREVIEW.key, keep); pose(0); return q;
+}
+function previewTick() {
+  const len = motionLen(PREVIEW.key);
+  if (PREVIEW.play) { PREVIEW.t += 1 / 60 * PREVIEW.speed; if (PREVIEW.t > len) PREVIEW.t = 0; }
+  PREVIEW.t = Math.max(0, Math.min(len, PREVIEW.t));
+  previewApply(PREVIEW.key, PREVIEW.t); pose(0);
+  combatCols.length = 0;
+  const c = P.atk;
+  if (P.state === 'attack') {
+    const hv = TU.frameData(PREVIEW.key, TU.frameOf(PREVIEW.t))?.hit, sw = c.lunge >= 300 || c.sweep;
+    const auto = sw ? PREVIEW.t >= c.wind && PREVIEW.t <= c.wind + c.act : Math.abs(PREVIEW.t - (c.wind + c.act * c.hitAt)) < 0.5 / TU.FPS;
+    if (hv === 'on' || (hv !== 'off' && auto)) combatCols.push({ shape: playerAttackBox(c), side: 'player', until: Infinity });
+  }
+  P.ghosts = []; F.update(0, time);
+  render();
+  document.getElementById('state').textContent = `미리보기 · ${PREVIEW.key} · ${TU.frameOf(PREVIEW.t)}프레임`;
+}
+
 function groundBelow(x, y) { let g = GROUND; for (const p of [...PLATS, ...BLOCKS]) if (x > p.x && x < p.x + p.w && p.y >= y - 1 && p.y < g) g = p.y; return g; }
 function shadow(x, y, r) { ctx.fillStyle = 'rgba(20,18,46,0.35)'; ctx.beginPath(); ctx.ellipse(x, y + 2, r, 6, 0, 0, Math.PI * 2); ctx.fill(); }
 
@@ -1321,7 +1668,7 @@ function drawDummy() {
 // (칼이 한두 프레임 만에 몸 앞을 가로지르니 프레임 자리만 이으면 궤적이 머리 위로 돌아 보임)
 const FX_BIG = 1.5;   // 칼빛 크기 배율 (칼 길이 대비)
 function sampleBlade(t0, t1) {
-  if (P.state !== 'attack' || opt.compare) { if (P.trail) { F.streakEnd(P.trail); P.trail = null; } return; }
+  if (P.state !== 'attack' || opt.compare || !TU.fxOn('trail')) { if (P.trail) { F.streakEnd(P.trail); P.trail = null; } return; }
   const c = P.atk, path = A.isPath(c), a = c.wind, b = c.wind + c.act + (path ? 0 : 0.03);
   if (c.noTrail) return;   // 칼빛 줄기 없이 그림 이펙트만 (강공격 마무리)
   if (c.spin && !path) return;   // 회전 베기는 회전 이펙트만
@@ -1337,6 +1684,8 @@ function sampleBlade(t0, t1) {
   }
   const s0 = Math.max(a, t0), s1 = Math.min(b, t1), f = P.facing, e = c.ell;
   for (let ts = s0; ts <= s1 + 1e-6; ts += 1 / 240) {
+    const fd = TU.frameData(P.atkName, TU.frameOf(ts));   // 튜닝: 프레임별 칼빛 끄기 · 굵기
+    if (fd?.trail === false) continue;
     if (c.dashFx) {   // 돌진 섬광: 칼끝 대신 몸통 가운데가 줄기 머리 → 지나온 길이 몸 뒤로 따라붙는 빛 줄기 (칼빛은 다음 베어 넘기기에서)
       const cx = P.x + P.facing * 6, cy = P.y - 46;
       F.streakPush(P.trail, cx, cy, time - (t1 - ts), cx, cy + 34, cx, cy);
@@ -1364,6 +1713,7 @@ function sampleBlade(t0, t1) {
     }
     if (c.fxAhead && !P.trail.tipAttached) { out = [out[0] + f * c.fxAhead, out[1]]; g2 = [g2[0] + f * c.fxAhead, g2[1]]; }   // 1·2타의 기존 앞쪽 강조 유지
     F.streakPush(P.trail, out[0], out[1], time - (t1 - ts), g2[0], g2[1], out[0], out[1], [bl.t[0], bl.t[1], bl.g[0], bl.g[1]]);
+    if (fd?.trailW != null) P.trail.pts[P.trail.pts.length - 1].wk = fd.trailW;
     P.tip = out;
     if (Math.random() < 0.12) F.tipSpark(out[0], out[1], f);
   }
@@ -1403,19 +1753,13 @@ function tick(dt) {
   fade = Math.max(0, fade - dt * 2.5);
   camY += (Math.min(0, (P.y - GROUND) * 0.55) - camY) * Math.min(1, dt * 5);   // 높이 뛰면 카메라가 반쯤 따라 올라감
   if (bannerT > 0) bannerT -= dt;
-  if (SK.skillUI.open) {   // 스킬 노드 창: 게임 멈춤, 방향키 이동 · Z/A/Enter 배우기 · ↑/Esc 닫기
-    const U = SK.skillUI;
-    if (pressed.left) SK.move(-1, 0); if (pressed.right) SK.move(1, 0); if (pressed.down) SK.move(0, 1);
-    if (pressed.up && U.t > 0.1) SK.move(0, -1);   // 연 순간의 ↑ 는 무시
-    if (pressed.jump || pressed.atk || pressed.enter) U.onLearn(U.sel);
-    if (pressed.esc || pressed.dash) U.open = false;
-    U.t = U.open ? (U.t || 0) + dt : 0;
-    for (const k in pressed) pressed[k] = false;
-    render(); return;
-  }
   if (opt.slow) dt *= 0.25;
+  if (!TU.fxOn('zoom')) { slowT = 0; zoomTgt = 1; }
+  if (!TU.fxOn('hitstop')) hitstop = 0;
+  if (PREVIEW.on) { previewTick(); return; }   // 캐릭터 테스트: 프레임 미리보기 (시뮬레이션 멈춤)
   if (slowT > 0) { slowT -= dt; dt *= 0.3; }
   zoomTgt = slowT > 0 ? zoomTgt : P.state === 'attack' && P.atk.charge ? 1.08 + 0.14 * Math.min(1, (P.chT || 0) / CH_MAX) : 1;   // 기 모으는 동안 화면이 당겨짐 (오래 모을수록 더)
+  if (!TU.fxOn('zoom')) zoomTgt = 1;
   zoom += (zoomTgt - zoom) * Math.min(1, dt * (slowT > 0 ? 18 : 5));
   flashScreen = Math.max(0, flashScreen - dt * 9);
   shake = Math.max(0, shake - dt * 40);
@@ -1516,7 +1860,8 @@ async function stageShot(name = 'city_depth') {
 const loadImg = src => new Promise(ok => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => ok(null); im.src = globalThis.__ASSETS?.[src] ?? src; });
 (async () => {
   const classic = new URLSearchParams(location.search).get('rig') === 'classic';
-  const RIG_DIR = new URLSearchParams(location.search).get('rig') === 'old' ? '../art/knight/rig' : classic ? '../art/knight/rig_v4' : '../art/knight/rig_urban';
+  RIG_DIR = new URLSearchParams(location.search).get('rig') === 'old' ? '../art/knight/rig' : classic ? '../art/knight/rig_v4' : '../art/knight/rig_urban';
+  FRIG_DIR = classic ? '../art/knight/rig_front' : '../art/knight/rig_front_urban';
   rig = await loadRig(RIG_DIR);
   for (let i = 0; i < 9; i++) FR[i] = await loadImg(`../art/knight/v5/frames/f${i}.png`);
   try { FRAME.meta = await (await fetch('../art/knight/v5/frames/meta.json')).json(); } catch (e) {}
@@ -1543,7 +1888,7 @@ const loadImg = src => new Promise(ok => { const im = new Image(); im.onload = (
     Object.assign(DEATH.STUCK, { img: cv0, lit: bakePart(cv0), entry: [n ? sx / n : W / 2, maxY + 1], h: maxY + 1 - minY });
   } }
   if (FR[11]) for (let i = 9; i <= 12; i++) FRAME.ks[i] = 62 / 300;   // 공 몸통(칼 뺀 지름 약 300px) ≈ 게임 62px, 네 장 같은 배율
-  try { frig = await loadRig(classic ? '../art/knight/rig_front' : '../art/knight/rig_front_urban'); } catch (e) { console.warn('정면 리그 없음', e); }
+  try { frig = await loadRig(FRIG_DIR); } catch (e) { console.warn('정면 리그 없음', e); FRIG_DIR = null; }
   for (const name in THEMES) await loadTheme(name);   // 그림이 없는 테마는 건너뜀 → 숲으로 대신 그림
   await TOAD.load(loadImg); await CENTI.load(loadImg);
   await HUD.loadUI(loadImg);   // HUD·알림 띠·보스 막대 그림 (art/ui/cut)
@@ -1552,7 +1897,7 @@ const loadImg = src => new Promise(ok => { const im = new Image(); im.onload = (
   for (const t in FOE) for (const n of FOE[t].frames) FOE_IMG[t][n] = await loadImg(`../art/enemy/${t}/cut/${n}.png`);
   for (const n of ['candle_off', 'candle_on', 'crumb', 'wedge']) PROP[n] = await loadImg(`../art/props/cut/${n}.png`);
   if (FR[8]) FRAME.k = 92 / FR[8].height;   // 준비 자세(8) 키 = 게임 약 92px 에 맞춰 모든 프레임 같은 배율
-  { const p = { ...A.IDLE, nU: 90, nF: 0, swL: 1, torso: 0 }; A.aim(p, 90); const b = bladeAt(rig, p, 0, 0, 1); A.PATH_K.k = Math.hypot(b.t[0] - b.s[0], b.t[1] - b.s[1]) / 118; }   // 칼을 늘리지 않고 닿게 경로를 리그 크기에 맞춤
+  fitPathK();
   await F.loadFx('../art/fx/cut');
   await F.loadPix('../art/fx/pixel/cut');
   await F.loadFlat('../art/fx/flat/cut');
@@ -1567,16 +1912,19 @@ const loadImg = src => new Promise(ok => { const im = new Image(); im.onload = (
   }
   fullImg = await loadImg(RIG_DIR + '/full_keyed.png');
   if (rig.def.rest) A.setRest(rig.def.rest);
-  SK.skillUI.onLearn = id => {   // 노드 배우기: 팝아트 효과음 + 안내
-    if (!SK.learn(G, P, id)) return;
-    const n = SK.NODES[id];
-    F.sfx('수련!', P.x, P.y - 140, P.facing, true); P.flash = 1;
-    showBanner(`${n.name} — ${n.desc}`, 3);
-  };
+  // 저장본: 게임 = data/active.json 이 고른 것 (없으면 data/tune.json) · 도구 = 브라우저에 남은 편집 중인 것을 먼저
+  let activeSave = null;
+  try { activeSave = (await (await fetch('../data/active.json', { cache: 'no-store' })).json()).save; await applyBundle(await (await fetch(`../data/saves/${encodeURIComponent(activeSave)}.json`, { cache: 'no-store' })).json()); }
+  catch (e) { activeSave = null; try { TU.setTune(await (await fetch('../data/tune.json', { cache: 'no-store' })).json()); } catch (e2) {} }
+  if (CHARTEST) try { const s = localStorage.getItem('rk_bundle'), t = localStorage.getItem('rk_tune'); if (s) await applyBundle(JSON.parse(s)); else if (t) TU.setTune(JSON.parse(t)); } catch (e) {}
   loadRoom(0);
+  if (CHARTEST) { P.x = 200; G.save = { room: 0, x: 160 }; }
   globalThis.__game = { ROOMS, got, go, loadRoom, G, DEATH, deathSword, MOVE, moveCut, get E() { return E; }, get BOSS() { return BOSS; },
-    get CH() { return CH; }, PIX, P, D, A, F, rig, opt, SHADE, LIGHT, shot, stageShot, film, startAttack, startDash, FR, FRAME, drawView, HBOX, playerAttackBox, playerHurtBox, foeHurtBox, enemyAttack, combatCols, spawnFoe, tryHit, get frig() { return frig; }, get D2() { return D; },
+    get CH() { return CH; }, PIX, P, D, A, F, get rig() { return rig; }, opt, SHADE, LIGHT, shot, stageShot, film, startAttack, startDash, FR, FRAME, drawView, HBOX, playerAttackBox, playerHurtBox, foeHurtBox, enemyAttack, combatCols, spawnFoe, tryHit, get frig() { return frig; }, get D2() { return D; },
     step: (n, dt = 1 / 60) => { manual = true; for (let i = 0; i < n; i++) tick(dt); manual = false; },   // 테스트: 저장 없이 프레임만 넘김
+    CHARVIEW, liveRig, captureAt, HIER, childrenOf, get wmat() { return wmat; }, DRAW_ORDER, ORDER_NAME, captureBundle, applyBundle, setRigPatch, RIGPATCH, FXIMG, COMPARE, setCompare, get activeSave() { return activeSave; },
+    atkDef, motionBase, fclock, TU, ABIL, PREVIEW, MOTIONS, motionLen, motionKey, startParry, startSjump, tryPhase, invNow, parryActive, get SPIKES() { return SPIKES; }, get BLOCKS() { return BLOCKS; },
+    respawnHere: () => { P.state = 'move'; P.hp = G.maxHp; P.dying = false; P.inv = 0; },
   };
   requestAnimationFrame(frame);
 })();

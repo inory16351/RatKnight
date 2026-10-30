@@ -257,6 +257,18 @@ export function attack(c, t, from) {
 }
 function sweepBlend(p, q, u) { return { sw: p.sw + (q.sw - p.sw) * u, swL: 1 + (q.swL - 1) * u }; }
 
+// ---------- 패링 · 슈퍼점프 (2026-10-30 새 능력, 임시 자세) ----------
+// 패링: 칼을 몸 앞에 비스듬히 세워 막음 → 받아넘긴 뒤 풀림
+const GUARD = aim(P({ torso: 14, head: -8, y: 3, x: 4, nU: 70, nF: 60, fU: 40, fF: 50, nT: 40, nS: -60, fT: -30, fS: -30, cape: -20, tail: -10, sq: 0.06 }), 160);
+export function parry(t, T = 0.3) {
+  if (t < 0.04) return lerpPose(IDLE, GUARD, easeOut(t / 0.04));
+  if (t < T * 0.55) return GUARD;
+  return lerpPose(GUARD, IDLE, easeInOut(clamp01((t - T * 0.55) / (T * 0.45))));
+}
+// 슈퍼점프 웅크림: 깊이 눌렸다가 솟구침 (솟은 뒤는 점프 자세)
+const SJ_LOW = aim(crouch(P({ torso: 20, head: -16, y: 8, nU: -30, nF: 30, fU: -40, fF: 30, cape: 20, tail: 20, sq: 0.2 }), 1), 230);
+export function sjump(t, T = 0.16) { return lerpPose(IDLE, SJ_LOW, easeOut(clamp01(t / T))); }
+
 // ---------- 피격 · 사망 ----------
 export const HURT_T = 0.3;
 const HURT = aim(P({ torso: -18, head: 16, x: -6, y: 1, nU: 60, nF: 60, fU: 90, fF: 40, nT: -10, nS: -20, fT: 10, fS: -20, cape: 50, tail: 40, sq: -0.05 }), 150);

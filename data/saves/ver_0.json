@@ -1,0 +1,106 @@
+{
+ "version": 1,
+ "tune": {
+  "keys": {
+   "left": [
+    "ArrowLeft"
+   ],
+   "right": [
+    "ArrowRight"
+   ],
+   "up": [
+    "ArrowUp"
+   ],
+   "down": [
+    "ArrowDown"
+   ],
+   "jump": [
+    "KeyZ",
+    "Space"
+   ],
+   "atk": [
+    "KeyA",
+    "KeyX",
+    "KeyJ"
+   ],
+   "heavy": [
+    "KeyF"
+   ],
+   "dash": [
+    "KeyC",
+    "ShiftLeft",
+    "ShiftRight"
+   ],
+   "parry": [
+    "KeyS"
+   ],
+   "sjump": [
+    "KeyD"
+   ],
+   "phase": [
+    "KeyE"
+   ],
+   "esc": [
+    "Escape"
+   ],
+   "enter": [
+    "Enter"
+   ],
+   "hurt": [
+    "KeyH"
+   ],
+   "die": [
+    "KeyK"
+   ],
+   "slow": [
+    "KeyT"
+   ],
+   "shade": [
+    "KeyG"
+   ],
+   "compare": [
+    "KeyV"
+   ]
+  },
+  "fxOff": {},
+  "motions": {}
+ },
+ "rig": {
+  "side": {},
+  "front": {}
+ },
+ "fx": {
+  "col": {
+   "base": "#ffd23a",
+   "white": "#ffffff",
+   "cool": [
+    "#a8461a",
+    "#ff9a1f"
+   ],
+   "trailW": 1,
+   "trailLife": 1
+  },
+  "dmg": {
+   "normal": [
+    "#ffe14a",
+    "#ff3d7f"
+   ],
+   "crit": [
+    "#ff3d7f",
+    "#2fe6ff"
+   ],
+   "fin": [
+    "#ff9a1f",
+    "#5b3dff"
+   ],
+   "boss": [
+    "#b8ff3c",
+    "#ff3d7f"
+   ]
+  },
+  "img": {}
+ },
+ "name": "ver_0",
+ "note": "승운님 제작 애니메이션",
+ "savedAt": "2026-10-30T05:56:23.413Z"
+}

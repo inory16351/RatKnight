@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>기사쥐 캐릭터 테스트</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  @font-face { font-family: 'NeoDGM'; src: url('../art/fonts/neodgm.woff2') format('woff2'); font-display: block; }
+  :root { --bg: #14172a; --panel: #1d2140; --line: #333a6e; --ink: #e8e6f4; --dim: #8d8fb0; --gold: #f2b33d; --navy: #2b3f86; --side: 420px; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: 'Noto Sans KR', sans-serif; overflow: hidden; font-size: 12px; }
+  #wrap { position: fixed; left: 0; top: 0; bottom: 200px; right: var(--side); display: flex; align-items: center; justify-content: center; }
+  canvas { display: block; background: #2a2f52; }
+  #room, #state { position: fixed; left: 10px; top: 8px; color: var(--gold); font-weight: 700; font-size: 13px; text-shadow: 0 1px 2px #000; pointer-events: none; }
+  #state { top: 28px; color: var(--dim); font-weight: 400; }
+  #panel { display: none; }
+  #side { position: fixed; right: 0; top: 0; bottom: 0; width: var(--side); background: var(--panel); border-left: 1px solid var(--line); display: flex; flex-direction: column; }
+  #tabs { display: flex; border-bottom: 1px solid var(--line); }
+  #tabs button { flex: 1; padding: 9px 0; font-size: 11.5px; background: none; border: 0; color: var(--dim); font: inherit; font-weight: 700; cursor: pointer; border-bottom: 2px solid transparent; }
+  #tabs button.on { color: var(--gold); border-bottom-color: var(--gold); }
+  .tab { display: none; flex: 1; overflow-y: auto; padding: 10px 12px 40px; }
+  .tab.on { display: block; }
+  h4 { margin: 14px 0 6px; font-size: 12px; color: var(--gold); }
+  h4:first-child { margin-top: 2px; }
+  .row { display: flex; align-items: center; gap: 6px; margin: 3px 0; flex-wrap: wrap; }
+  .row label { display: flex; align-items: center; gap: 4px; }
+  button.b { padding: 4px 8px; background: var(--navy); color: var(--ink); border: 0; border-radius: 4px; font: inherit; cursor: pointer; }
+  button.b:hover { filter: brightness(1.2); }
+  button.b.on { background: var(--gold); color: #1d2140; font-weight: 700; }
+  button.b.warn { background: #6b2a3a; }
+  select, input[type=number], input[type=text] { background: #12152b; color: var(--ink); border: 1px solid var(--line); border-radius: 4px; font: inherit; padding: 3px 4px; }
+  input[type=number] { width: 62px; }
+  .ab { display: grid; grid-template-columns: 22px 1fr; gap: 2px 8px; align-items: center; padding: 6px 8px; margin: 4px 0; border-radius: 6px; background: #161a36; border-left: 4px solid var(--c); cursor: pointer; }
+  .ab b { color: var(--c); }
+  .ab small { grid-column: 2; color: var(--dim); }
+  .key { display: inline-flex; align-items: center; gap: 3px; background: #12152b; border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; margin: 1px; }
+  .key i { font-style: normal; color: #ff6b81; cursor: pointer; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 3px 2px; border-bottom: 1px solid #262b55; vertical-align: middle; }
+  td:first-child { color: var(--dim); width: 120px; }
+  #dock { position: fixed; left: 0; right: var(--side); bottom: 0; background: var(--panel); border-top: 1px solid var(--line); display: flex; flex-direction: column; z-index: 5; }
+  #viewbar { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; padding: 6px 8px 4px; }
+  #viewbar label { display: flex; align-items: center; gap: 3px; }
+  #viewbar .sep { width: 1px; height: 18px; background: var(--line); margin: 0 3px; }
+  #strip { display: flex; gap: 0; padding: 2px 10px 2px 0; height: 36px; flex: none; }
+  #strip div { flex: none; height: 32px; margin-right: 2px; background: #12152b; border: 1px solid var(--line); border-radius: 3px; font-size: 10px; text-align: center; cursor: pointer; line-height: 14px; overflow: hidden; }
+  #strip div.key { border-color: #ff3d7f; }
+  #strip div.cur { border-color: var(--gold); background: #3a3420; }
+  #strip div.live { box-shadow: inset 0 -3px 0 #2fe6ff; }
+  #strip div.dim { opacity: 0.25; }
+  #strip div .m { display: block; font-size: 9px; letter-spacing: -1px; white-space: nowrap; }
+  #tl { flex: none; height: 96px; width: 100%; display: block; cursor: col-resize; }
+  .ph-wind { color: #9ab; } .ph-act { color: #ffd23a; } .ph-rec { color: #7a7fa8; }
+  .bone { display: grid; grid-template-columns: 52px 1fr 52px; gap: 6px; align-items: center; margin: 1px 0; }
+  .bone span { color: var(--dim); }
+  .bone.set span { color: var(--gold); font-weight: 700; }
+  .bone input[type=range] { width: 100%; }
+  .ev { background: #161a36; border-radius: 5px; padding: 5px; margin: 4px 0; }
+  .hint { color: var(--dim); line-height: 1.6; }
+  /* 정리 (2026-10-30): 묶음 · 카드 · 칩 */
+  #room, #state { display: none; }
+  #tabs .tsep { width: 1px; background: var(--line); margin: 8px 2px; }
+  .tab h4 { border-top: 1px solid var(--line); padding-top: 10px; }
+  .tab h4:first-child { border-top: 0; padding-top: 0; }
+  #viewbar, #viewbar2 { gap: 8px; }
+  #viewbar2 { padding: 0 8px 4px; display: flex; flex-wrap: wrap; align-items: center; }
+  .grp { display: flex; align-items: center; gap: 4px; padding: 3px 8px; border: 1px solid var(--line); border-radius: 6px; background: #161a36; flex-wrap: wrap; }
+  .grp.off { opacity: 0.45; }
+  .grp.now { border-color: transparent; background: none; gap: 6px; }
+  .grp.now b { font-size: 16px; color: var(--gold); }
+  .gl { font-size: 10px; color: var(--dim); margin-right: 2px; letter-spacing: 0.5px; }
+  .pick { display: inline-flex; align-items: center; gap: 4px; }
+  .pick span { color: var(--dim); }
+  .tg { display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border-radius: 10px; border: 1px solid var(--line); cursor: pointer; user-select: none; }
+  .tg input { display: none; }
+  .tg.on { background: var(--gold); color: #1d2140; border-color: var(--gold); font-weight: 700; }
+  .tog { display: inline-flex; align-items: center; gap: 4px; }
+  .num { min-width: 34px; text-align: center; }
+  input.sz { width: 70px; }
+  button.mini { padding: 2px 7px; background: #232850; color: var(--ink); border: 1px solid var(--line); border-radius: 4px; font: inherit; cursor: pointer; }
+  button.mini:hover { border-color: var(--gold); }
+  button.mini.warn { color: #ff9a8a; }
+  button:disabled { opacity: 0.35; cursor: default; }
+  .chip { display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 9px; font-size: 11px; background: color-mix(in srgb, var(--k) 22%, transparent); color: var(--k); border: 1px solid color-mix(in srgb, var(--k) 55%, transparent); white-space: nowrap; }
+  .card { margin: 8px 0; border: 1px solid var(--line); border-left: 4px solid var(--cc); border-radius: 6px; background: #181c3a; }
+  .card > summary { display: flex; align-items: center; gap: 6px; padding: 6px 8px; cursor: pointer; list-style: none; font-weight: 700; color: var(--cc); }
+  .card > summary::-webkit-details-marker { display: none; }
+  .card > summary::before { content: '▸'; color: var(--dim); }
+  .card[open] > summary::before { content: '▾'; }
+  .card .ct { flex: 1; font-size: 12px; }
+  .card > *:not(summary) { margin-left: 8px; margin-right: 8px; }
+  .card > *:last-child { margin-bottom: 8px; }
+  .head { padding: 8px; border-radius: 6px; background: #12152b; border: 1px solid var(--line); }
+  .head .big { font-size: 15px; font-weight: 700; color: var(--gold); }
+  .bgrp { font-size: 10px; color: var(--gc); margin: 8px 0 2px; border-bottom: 1px solid #262b55; }
+  .bone { grid-template-columns: 62px 1fr 54px 22px; }
+  .bone input[type=range] { -webkit-appearance: none; appearance: none; height: 6px; border-radius: 3px; background: linear-gradient(90deg, #2a2f55 0, #2a2f55 var(--a, 50%), #ff3d7f var(--a, 50%), #ff3d7f var(--b, 50%), #2a2f55 var(--b, 50%)); }
+  .bone input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: var(--ink); border: 2px solid #1d2140; }
+  .lenbar { display: flex; height: 18px; border-radius: 4px; overflow: hidden; margin: 6px 0; font-size: 10px; }
+  .lenbar div { display: flex; align-items: center; justify-content: center; color: #111; font-weight: 700; overflow: hidden; white-space: nowrap; min-width: 2px; }
+  #strip div.ph-wind { background: rgba(91,116,196,0.22); } #strip div.ph-act { background: rgba(224,169,44,0.28); } #strip div.ph-rec { background: rgba(74,80,128,0.25); }
+  #strip div.cur { background: #3a3420; }
+  #badge { position: fixed; left: 10px; top: 8px; display: flex; align-items: center; gap: 6px; padding: 5px 10px; background: rgba(20,23,42,0.88); border: 1px solid var(--line); border-radius: 8px; z-index: 4; pointer-events: none; }
+  #tltip { position: fixed; display: none; z-index: 9; padding: 6px 8px; background: #0e1024; border: 1px solid var(--gold); border-radius: 6px; pointer-events: none; max-width: 240px; }
+  #toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); background: var(--gold); color: #1d2140; padding: 6px 14px; border-radius: 5px; font-weight: 700; display: none; z-index: 9; }
+</style>
+<script>if (location.protocol === 'file:') document.addEventListener('DOMContentLoaded', () => { document.body.innerHTML = '<div style="padding:40px;font:16px/1.8 sans-serif;color:#e8e6f4;background:#14172a;height:100vh">파일을 직접 열면 동작하지 않습니다 (브라우저 보안).<br>1) RatKnight 폴더에서 <b>node tools/serve.js</b> 실행<br>2) <a style="color:#f2b33d" href="http://localhost:5330/web/chartest.html">http://localhost:5330/web/chartest.html</a> 로 열기</div>'; });</script>
+</head>
+<body>
+<script>globalThis.__CHARTEST = true; globalThis.__sideW = 420; globalThis.__bottomH = 200;</script>
+<div id="wrap"><canvas id="cv"></canvas></div>
+<div id="room"></div><div id="state"></div>
+<!-- main.js 가 찾는 기본 패널 (도구에선 숨김) -->
+<div id="panel"><button data-tog="shade" class="on"></button><button data-tog="glow" class="on"></button><button data-tog="ink" class="on"></button><button data-tog="halftone" class="on"></button><button data-tog="slow"></button><button data-tog="compare"></button><button data-tog="colliders"></button><input type="range" id="shA" min="0" max="0.7" step="0.02"><input type="range" id="hiA" min="0" max="0.6" step="0.02"></div>
+<div id="side">
+  <div id="tabs"><button data-t="ab" class="on">능력</button><button data-t="keys">키</button><span class="tsep"></span><button data-t="mo">프레임</button><button data-t="rig">리깅</button><button data-t="fx">이펙트</button><span class="tsep"></span><button data-t="cmp">비교</button><button data-t="file">저장</button></div>
+  <div class="tab on" id="t-ab"></div>
+  <div class="tab" id="t-keys"></div>
+  <div class="tab" id="t-mo"></div>
+  <div class="tab" id="t-rig"></div>
+  <div class="tab" id="t-fx"></div>
+  <div class="tab" id="t-cmp"></div>
+  <div class="tab" id="t-file"></div>
+</div>
+<div id="toast"></div>
+<script type="module" src="src/main.js"></script>
+<script type="module" src="src/chartest.js"></script>
+</body>
+</html>

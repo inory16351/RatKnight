@@ -1,0 +1,65 @@
+{
+ "keys": {
+  "left": [
+   "ArrowLeft"
+  ],
+  "right": [
+   "ArrowRight"
+  ],
+  "up": [
+   "ArrowUp"
+  ],
+  "down": [
+   "ArrowDown"
+  ],
+  "jump": [
+   "KeyZ",
+   "Space"
+  ],
+  "atk": [
+   "KeyA",
+   "KeyX",
+   "KeyJ"
+  ],
+  "heavy": [
+   "KeyF"
+  ],
+  "dash": [
+   "KeyC",
+   "ShiftLeft",
+   "ShiftRight"
+  ],
+  "parry": [
+   "KeyS"
+  ],
+  "sjump": [
+   "KeyD"
+  ],
+  "phase": [
+   "KeyE"
+  ],
+  "esc": [
+   "Escape"
+  ],
+  "enter": [
+   "Enter"
+  ],
+  "hurt": [
+   "KeyH"
+  ],
+  "die": [
+   "KeyK"
+  ],
+  "slow": [
+   "KeyT"
+  ],
+  "shade": [
+   "KeyG"
+  ],
+  "compare": [
+   "KeyV"
+  ]
+ },
+ "fxOff": {},
+ "motions": {}
+}

@@ -8,6 +8,17 @@ const NAMES = ['trail', 'slices', 'cres_a', 'cres_b', 'cres_c', 'rib_a', 'rib_b'
 // 픽셀 팝아트 이펙트 (art/fx/pixel/cut, Codex 시트 fx_pixel_sheet.png): 리본 4단(온전 → 꼬리부터 픽셀 조각으로 부서짐) · 칼끝 반짝 3프레임 · 파편 · 먼지 3프레임 · 속도선
 const PX_NAMES = ['rib_0', 'rib_1', 'rib_2', 'rib_3', 'glint_0', 'glint_1', 'glint_2', 'shard0', 'shard1', 'shard2', 'shard3', 'shard4', 'shard5', 'shard6', 'dust_0', 'dust_1', 'dust_2', 'speed'];
 export const IMG = {};
+// 이펙트 그림 바꾸기 (캐릭터 테스트 도구): 원본은 ORIG 에 두고 되돌릴 수 있게
+const ORIG = {};
+export async function replaceImg(key, src) {
+  if (!(key in ORIG)) ORIG[key] = IMG[key];
+  if (!src) { IMG[key] = ORIG[key]; return; }
+  IMG[key] = await new Promise(ok => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => ok(ORIG[key]); im.src = src; });
+}
+export function restoreImgs() { for (const k in ORIG) IMG[k] = ORIG[k]; }
+// 칼빛 색·크기 (캐릭터 테스트 도구에서 바꿈): base = 본색(4단 램프를 뽑음) · white = 나타난 순간 · cool = 식어 부서질 때 [어둠, 밝음] · trailW = 굵기 배율 · trailLife = 남는 시간 배율
+export const FXCOL = { base: '#ffd23a', white: '#ffffff', cool: ['#a8461a', '#ff9a1f'], trailW: 1, trailLife: 1 };
+export const FXCOL_DEFAULT = structuredClone(FXCOL);
 // pre = IMG 키 앞에 붙일 말 (픽셀판은 'px_')
 export async function loadFx(dir, names = NAMES, pre = '') {
   await Promise.all(names.map(n => new Promise(ok => {
@@ -233,14 +244,15 @@ function drawStreaks(ctx) {
   // 그림 한 장이 갑자기 뜨고 지는 게 아니라 칼이 지나가는 만큼 자라고, 다 휘둘러도 스스로 가늘어지며 사라짐.
   // 띠 = 칼끝 길(바깥) → 안쪽 길(칼 쪽 + 아래 섞음) 사이를 4겹 평면색으로 칠함: 남색 테두리 / 주황 / 노랑 / 흰 심 (팝아트 플랫).
   const W = 70, now = FX.now || 0;
+  if (rampBase !== FXCOL.base) { RAMP = rampOf(FXCOL.base); rampBase = FXCOL.base; }
   const COL0 = FX.mono ? [[FX.mono, 0, 1]] : RAMP.map((c, i) => [c, [0, 0.07, 0.24, 0.44][i], [1, 0.93, 0.78, 0.6][i]]);   // [색, 바깥쪽 비율, 안쪽 비율] · FX.mono = 단색 하나로
   // 흰색 → 빨강 (이나리처럼): 나타난 순간엔 새하얀 단색 → 분홍·빨강 → 부서질 땐 진한 빨강만 남음
   const WR = [['#7a0f22', 0, 1], ['#ff2e4d', 0.08, 0.92], ['#ffb3bf', 0.3, 0.75], ['#ffffff', 0.45, 0.6]];
   // 사용자 선택(2026-10-28): 색은 노랑으로, 바뀌는 방식은 그대로 — 나타난 순간 새하얀 단색 → 노랑 4겹 → 부서질 땐 주황으로 식음
-  const colFor = s => { if (!FX.whiteRed) return COL0; const h = s.open ? 0 : s.fade / 0.25; return h < 0.25 ? [['#ffffff', 0, 1]] : h < 0.6 ? COL0 : [['#a8461a', 0, 1], ['#ff9a1f', 0.15, 0.85]]; };
+  const colFor = s => { if (!FX.whiteRed) return COL0; const h = s.open ? 0 : s.fade / 0.25; return h < 0.25 ? [[FXCOL.white, 0, 1]] : h < 0.6 ? COL0 : [[FXCOL.cool[0], 0, 1], [FXCOL.cool[1], 0.15, 0.85]]; };
   for (const s of FX.streaks) {
     const P = s.pts; if (P.length < 2) continue;
-    const LIFE = s.span ?? Math.max(0.36, (s.life || 0.15) * 2.6);   // 휘두름 처음부터 끝까지 꼬리가 남도록 (act 보다 길게) · span = 경로 베기의 짧은 수명
+    const LIFE = (s.span ?? Math.max(0.36, (s.life || 0.15) * 2.6)) * FXCOL.trailLife;   // 휘두름 처음부터 끝까지 꼬리가 남도록 (act 보다 길게) · span = 경로 베기의 짧은 수명
     const seg = [];
     const h = s.open ? 0 : s.fade / 0.25, stick = FX.whiteRed && s.stick ? 1 - Math.min(1, Math.max(0, (h - 0.25) / 0.35)) : 0;   // 흰 단계 = 칼에 붙음 → 노랑으로 바뀌며 원래 자리로 펴짐 (s.stick = 공중 공격만, 평타는 원래 자리)
     for (const p0 of P) {
@@ -252,7 +264,7 @@ function drawStreaks(ctx) {
       // 폭 = 칼 길이의 대부분 (칼에 두껍게 붙어 따라오는 부채꼴) · wFix = 어느 자리든 같은 굵기의 얇은 띠 (수평 회전 베기)
       let width = s.tipAttached ? Math.min(150, d * 0.78) : Math.min(180, Math.max(60, d * 0.95));
       if (p !== p0) { const bl = Math.hypot((p0.gx ?? p0.x) - o[2] - p.x, (p0.gy ?? p0.y) - o[3] - p.y); width += (Math.min(width, bl) - width) * stick; }   // 붙어 있는 동안은 칼날 길이만큼만 (손잡이 너머로 안 넘침)
-      const w = (s.wFix ?? width) * (s.wMul ?? 1) * Math.pow(1 - age, 0.35) * Math.min(1, (p.at - P[0].at) / 0.02 + 0.2);
+      const w = (s.wFix ?? width) * (s.wMul ?? 1) * (p0.wk ?? 1) * FXCOL.trailW * Math.pow(1 - age, 0.35) * Math.min(1, (p.at - P[0].at) / 0.02 + 0.2);
       seg.push({ x: p.x, y: p.y, vx: dx / d * w, vy: dy / d * w, a: 1 - age * age });
     }
     if (seg.length < 2) continue;
@@ -380,7 +392,7 @@ export function spinFx(x, y, dir, w, o = {}) {
 // 언더월드 pixfx rampOf: 기본색 하나에서 4단(어둠·본색·밝음·흰 심지)을 뽑음 — 단색으로 뽑은 뒤 밝기 단계로 노란 계열 도트로 다듬는 방식
 const mixC = (a, b, k) => a.map((v, i) => Math.round(v + (b[i] - v) * k));
 const rampOf = col => { const n = parseInt(col.replace('#', ''), 16), c = [(n >> 16) & 255, (n >> 8) & 255, n & 255]; return [mixC(c, [16, 10, 20], 0.55), c, mixC(c, [255, 255, 255], 0.45), mixC(c, [255, 255, 255], 0.82)].map(a => `rgb(${a[0]},${a[1]},${a[2]})`); };
-const RAMP = rampOf('#ffd23a');
+let RAMP = rampOf(FXCOL.base), rampBase = FXCOL.base;
 export function drawFlips(ctx, front) {
   if (front) drawStreaks(ctx);
   if (front) drawSweeps(ctx);
@@ -477,12 +489,13 @@ function drawTexts(ctx) {
 // 숫자 글꼴 = art/ui/digits/cut/0~9.png (Codex: 흰 채움 + 굵은 검은 외곽). 그림이 없으면 같은 모양을 글꼴로 구워 대신 씀.
 // 색은 코드로: 흰 채움만 그 색으로 물들이고 밝은 망점을 얹음, 외곽은 검정 유지. 뒤에 어긋난 색판(인쇄 어긋남) 한 장.
 const DIGITS = [], TINT = {}, NUMS = [];
-export const DMG_STYLE = {   // [채움, 어긋난 색판]
+export const DMG_STYLE = {   // [채움, 어긋난 색판] (캐릭터 테스트 도구에서 바꿈)
   normal: ['#ffe14a', '#ff3d7f'],
   crit: ['#ff3d7f', '#2fe6ff'],   // 빈틈(2배) 피해
   fin: ['#ff9a1f', '#5b3dff'],    // 막타
   boss: ['#b8ff3c', '#ff3d7f'],
 };
+export const DMG_DEFAULT = structuredClone(DMG_STYLE);
 export async function loadDigits(dir) {
   const load = src => new Promise(ok => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => ok(null); im.src = src; });
   for (let i = 0; i < 10; i++) {

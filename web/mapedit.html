@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>기사쥐 맵 제작</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg: #0b0c14; --panel: #1d2140; --line: #333a6e; --ink: #e8e6f4; --dim: #8d8fb0; --gold: #f2b33d; --navy: #2b3f86; --side: 330px; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: 'Noto Sans KR', sans-serif; overflow: hidden; font-size: 12px; }
+  #top { position: fixed; left: 0; right: 0; top: 0; height: 40px; display: flex; align-items: center; gap: 6px; padding: 0 10px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  #top .title { font-weight: 700; color: var(--gold); margin-right: 8px; }
+  #top .sp { flex: 1; }
+  #top .sep { width: 1px; height: 20px; background: var(--line); margin: 0 4px; }
+  #view { position: fixed; left: 0; top: 40px; bottom: 24px; right: var(--side); }
+  #cv { display: block; width: 100%; height: 100%; cursor: crosshair; }
+  #status { position: fixed; left: 0; bottom: 0; right: var(--side); height: 24px; padding: 3px 10px; background: var(--panel); border-top: 1px solid var(--line); color: var(--dim); white-space: nowrap; overflow: hidden; display: flex; gap: 14px; align-items: center; }
+  #status span { display: inline-flex; align-items: center; gap: 4px; }
+  #overlay { position: absolute; left: 10px; bottom: 10px; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+  #mini { pointer-events: auto; cursor: pointer; border: 1px solid var(--line); border-radius: 6px; background: #0b0c14; width: 220px; height: 130px; }
+  #legend { background: rgba(20,23,42,0.88); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; display: flex; flex-direction: column; gap: 3px; }
+  .lg { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .lg span { display: inline-flex; align-items: center; gap: 3px; }
+  #side { position: fixed; right: 0; top: 40px; bottom: 0; width: var(--side); background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto; padding: 8px 12px 40px; }
+  h4 { margin: 14px 0 6px; font-size: 12px; color: var(--gold); }
+  h4:first-child { margin-top: 2px; }
+  .row { display: flex; align-items: center; gap: 6px; margin: 3px 0; flex-wrap: wrap; }
+  .row label { display: flex; align-items: center; gap: 4px; }
+  button.b { padding: 4px 8px; background: var(--navy); color: var(--ink); border: 0; border-radius: 4px; font: inherit; cursor: pointer; }
+  button.b:hover { filter: brightness(1.2); }
+  button.b.on { background: var(--gold); color: #1d2140; font-weight: 700; }
+  button.b.warn { background: #6b2a3a; }
+  select, input[type=number], input[type=text] { background: #12152b; color: var(--ink); border: 1px solid var(--line); border-radius: 4px; font: inherit; padding: 3px 4px; }
+  input[type=number] { width: 58px; }
+  input[type=text] { width: 140px; }
+  input[type=color] { width: 30px; height: 22px; padding: 0; border: 0; background: none; }
+  .tool { display: inline-flex; align-items: center; gap: 4px; padding: 4px 7px; margin: 2px; border-radius: 4px; background: #161a36; border: 1px solid var(--line); cursor: pointer; }
+  .tool.on { border-color: var(--gold); background: #3a3420; }
+  .tool i { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
+  .item { padding: 4px 6px; margin: 2px 0; border-radius: 4px; background: #161a36; cursor: pointer; border-left: 5px solid var(--c, #555); display: flex; align-items: center; gap: 6px; }
+  .item.on { background: #3a3420; }
+  .warn-list div { color: #ff9a8a; margin: 2px 0; }
+  .ok { color: #7ee2a8; }
+  .hint { color: var(--dim); line-height: 1.6; }
+  .grp { display: flex; align-items: center; gap: 5px; padding: 3px 8px; border: 1px solid var(--line); border-radius: 6px; background: #161a36; }
+  .gl { font-size: 10px; color: var(--dim); }
+  #toolchip { display: inline-flex; align-items: center; gap: 5px; font-weight: 700; min-width: 120px; }
+  button.mini { padding: 2px 8px; background: #232850; color: var(--ink); border: 1px solid var(--line); border-radius: 4px; font: inherit; cursor: pointer; }
+  button.mini:hover { border-color: var(--gold); }
+  .pick { display: inline-flex; align-items: center; gap: 5px; }
+  .pick span { color: var(--dim); }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 3px; flex: none; border: 1px solid rgba(255,255,255,0.2); }
+  .card { margin: 8px 0; border: 1px solid var(--line); border-left: 4px solid var(--cc); border-radius: 6px; background: #181c3a; }
+  .card > summary { padding: 6px 8px; cursor: pointer; list-style: none; font-weight: 700; color: var(--cc); }
+  .card > summary::-webkit-details-marker { display: none; }
+  .card > summary::before { content: '▸ '; color: var(--dim); }
+  .card[open] > summary::before { content: '▾ '; }
+  .card > *:not(summary) { margin-left: 8px; margin-right: 8px; }
+  .card > *:last-child { margin-bottom: 8px; }
+  .sub { font-size: 10px; color: var(--dim); margin: 8px 0 2px; border-bottom: 1px solid #262b55; }
+  .miss { color: #ff9a8a; }
+  canvas.prev { border-radius: 4px; border: 1px solid var(--line); flex: none; }
+  #toast { position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%); background: var(--gold); color: #1d2140; padding: 6px 14px; border-radius: 5px; font-weight: 700; display: none; z-index: 9; }
+</style>
+<script>if (location.protocol === 'file:') document.addEventListener('DOMContentLoaded', () => { document.body.innerHTML = '<div style="padding:40px;font:16px/1.8 sans-serif;color:#e8e6f4;background:#14172a;height:100vh">파일을 직접 열면 동작하지 않습니다 (브라우저 보안).<br>1) RatKnight 폴더에서 <b>node tools/serve.js</b> 실행<br>2) <a style="color:#f2b33d" href="http://localhost:5330/web/mapedit.html">http://localhost:5330/web/mapedit.html</a> 로 열기</div>'; });</script>
+</head>
+<body>
+<div id="top">
+  <span class="title">맵 제작</span>
+  <div class="grp"><span class="gl">선택 단위</span><select id="mode"><option value="region">지역 (색 구역)</option><option value="pass">통로 (레이어 · 구역)</option><option value="room">방 (카메라 구역)</option><option value="tile" selected>타일 · 오브젝트</option></select></div>
+  <div class="grp"><span class="gl">지금</span><span id="toolchip"></span></div>
+  <div class="grp"><span class="gl">보기</span><button class="mini" id="fit-all">전체 보기</button><button class="mini" id="fit-sel" title="F">고른 것 맞춤</button><span class="hint" id="zoom"></span></div>
+  <span class="sp"></span>
+  <button class="b" id="undo">되돌리기 (Ctrl+Z)</button>
+  <button class="b on" id="save">파일로 저장 (data/world.json)</button>
+</div>
+<div id="view"><canvas id="cv"></canvas><div id="overlay"><canvas id="mini" width="220" height="130" title="작은 지도 — 눌러서 이동"></canvas><div id="legend"></div></div></div>
+<div id="status"></div>
+<div id="side"></div>
+<div id="toast"></div>
+<script type="module" src="src/mapedit.js"></script>
+</body>
+</html>

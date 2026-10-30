@@ -32,6 +32,29 @@ http.createServer((req, res) => {
     req.on('end', () => { fs.writeFileSync(path.join(dir, name), Buffer.concat(chunks)); res.end('ok'); });
     return;
   }
+  // 도구 데이터: POST /__data?name=파일.json[&dir=saves] → data/[saves/] 저장 · DELETE 같은 주소 = 지우기 · GET /__list?dir=saves = 파일 목록
+  const dataDir = q => path.join(ROOT, 'data', q.get('dir') === 'saves' ? 'saves' : '');
+  if (req.method === 'GET' && req.url.startsWith('/__list')) {
+    const dir = dataDir(new URL(req.url, 'http://x').searchParams);
+    const list = fs.existsSync(dir) ? fs.readdirSync(dir).filter(f => f.endsWith('.json')).map(f => ({ name: f.slice(0, -5), time: fs.statSync(path.join(dir, f)).mtimeMs })) : [];
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); return res.end(JSON.stringify(list));
+  }
+  if (req.method === 'DELETE' && req.url.startsWith('/__data')) {
+    const q = new URL(req.url, 'http://x').searchParams, name = path.basename(q.get('name') || '');
+    const file = path.join(dataDir(q), name);
+    if (!name.endsWith('.json') || !fs.existsSync(file)) { res.writeHead(404); return res.end(); }
+    fs.unlinkSync(file); return res.end('deleted');
+  }
+  if (req.method === 'POST' && req.url.startsWith('/__data')) {
+    const q = new URL(req.url, 'http://x').searchParams, name = path.basename(q.get('name') || 'data.json');
+    if (!name.endsWith('.json')) { res.writeHead(400); return res.end(); }
+    const dir = dataDir(q);
+    fs.mkdirSync(dir, { recursive: true });
+    const chunks = [];
+    req.on('data', (c) => chunks.push(c));
+    req.on('end', () => { fs.writeFileSync(path.join(dir, name), Buffer.concat(chunks)); res.end('ok data/' + name); });
+    return;
+  }
   // 단일 HTML 빌드 결과 저장: POST /__dist?name=파일.html → dist/ (tools/build_single.html 이 보냄)
   if (req.method === 'POST' && req.url.startsWith('/__dist')) {
     const name = path.basename(new URL(req.url, 'http://x').searchParams.get('name') || 'ratknight_proto.html');

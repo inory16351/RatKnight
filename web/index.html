@@ -23,12 +23,13 @@
   #panel input[type=range] { width: 100px; }
   #state { margin-top: 6px; color: var(--dim); }
 </style>
+<script>if (location.protocol === 'file:') document.addEventListener('DOMContentLoaded', () => { document.body.innerHTML = '<div style="padding:40px;font:16px/1.8 sans-serif;color:#e8e6f4;background:#14172a;height:100vh">파일을 직접 열면 동작하지 않습니다 (브라우저 보안).<br>1) RatKnight 폴더에서 <b>node tools/serve.js</b> 실행<br>2) <a style="color:#f2b33d" href="http://localhost:5330/web/index.html">http://localhost:5330/web/index.html</a> 로 열기</div>'; });</script>
 </head>
 <body>
 <div id="wrap"><canvas id="cv"></canvas></div>
 <div id="hud">
   <b>← →</b> 이동 · <b>Z / Space</b> 점프 · <b>A / X / J</b> 베기 (3타 · 공중 세로 회전 · 공중 ↓ 내려찍기) · <b>F / 우클릭</b> 짧게 대시 · 길게 충전 돌진 · <b>C / Shift</b> 대시<br>
-  <b>↑</b> 쉼터에서 스킬 노드 · <b>H</b> 피격 · <b>K</b> 사망 · <b>T</b> 슬로우 · <b>G</b> 셰이더 · <b>V</b> 통그림 비교
+  <b>S</b> 패링 · <b>D</b> 슈퍼점프 · <b>E</b> 벽통과 (능력 보유 시) · <b>H</b> 피격 · <b>K</b> 사망 · <b>T</b> 슬로우 · <b>G</b> 셰이더 · <b>V</b> 통그림 비교
 </div>
 <div id="room"style="position:fixed;left:50%;top:10px;transform:translateX(-50%);font-size:15px;font-weight:700;color:var(--gold);text-shadow:0 1px 3px #000;pointer-events:none"></div>
 <!-- 하트·레벨·경험치·보스 막대·알림 띠·스킬 노드 창은 게임 캔버스 위에 그림 (src/hud.js) -->

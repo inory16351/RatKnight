@@ -1,6 +1,18 @@
 # 기사쥐 (RatKnight) — 인수인계
 
-마지막 갱신: 2026-10-29, 사용자 요청으로 다른 에이전트에 인계. **§5는 현재 구현 상태, §6은 중단 지점과 다음 작업. §3·§4는 이전 기록이므로 현재 미완료 목록으로 해석하지 말 것.**
+마지막 갱신: 2026-10-30 (Claude). **맨 위 §00 이 최신.** 그 아래 §0~§6 은 이전 기록 — 스킬 노드 관련 내용은 폐지됨.
+
+## 00. 2026-10-30 작업 (Claude) — 맵 구조 계획 · 캐릭터 테스트 도구 · 맵 제작 도구
+- 작업 경로 = `C:/NKK/RatUprising/RatKnight` (아래 기록의 `C:/Dev/RatKnight` 는 이전 환경).
+- 맵 구조 기준: `docs/map-structure-handoff.md`(사용자 승인 규칙) + `docs/map-structure.png`(구조도, 원래 이름 AAAAAElFTkSuQmCC.png) → 적용 계획·결정 기록 = **`docs/map-structure-plan.md`** (능력 a~e 확정, 블럭 48px, 단방향 표현, 저장, 엔딩 후 처리, 도구 현황, world.json 형식).
+- 사용자 결정 요약: a=3연속 대시 · b=패링 · c=이단 점프 · d=수직 슈퍼점프 · e=단거리 벽통과, 벽 차기 = 첫 번째 초반 맵 보스 공용 보상(맵 안 숨은 길용). **스킬 노드 폐지** → 레벨업 자동 해금(Lv2 내려찍기 · Lv3 충전 돌진 · Lv4·5 체력). 기존 방 8개는 참고용, 맵은 새로 설계.
+- 새 파일: `web/chartest.html`·`src/chartest.js`(캐릭터 테스트), `web/mapedit.html`·`src/mapedit.js`(맵 제작), `src/tune.js`(키·이펙트·프레임 튜닝), `src/abilities.js`(능력 정의·블럭 크기), `data/tune.json`·`data/world.json`(도구 저장 결과). `tools/serve.js` 에 `POST /__data?name=x.json` → `data/` 저장 추가.
+- `main.js`: 능력 5종·가시·테스트장·튜닝 훅(프레임별 자세/무적/판정/캔슬/속도/칼빛/잔상/이펙트 이벤트, 이펙트 종류별 끄기, 키 배치)·프레임 미리보기. `fx.js` 점별 칼빛 굵기(`wk`). `hud.js` 노드 창 제거, `skills.js` 삭제.
+- 검증: 브라우저에서 3연속 대시 가시밭 통과(능력 없으면 피해) · 이단 점프 선반 도달 · 슈퍼점프 627px · 벽통과 3490→3734 · 바닥/벽 가시 패링 튕김 · 프레임 무적·자세 키·이펙트 이벤트·키 바꾸기·이펙트 끄기 · 파일 저장 확인. 기존 전투 검사 20개를 앱 브라우저에서 돌려 19개 통과, **1개(보스 착지 판정 top 440 기대) 실패 = 이번 변경 전부터 boss.js 값이 420 이라 생긴 오래된 테스트 기대값** (boss.js 는 이번에 안 건드림).
+- `tools/verify_combat.cjs`·`inspect_action.cjs` 의 Playwright 경로(`C:/Users/asdzx/...`)는 이 PC 에 없음 → 그대로는 실행 안 됨.
+- 2차: 캐릭터 테스트에 저장본(튜닝+리그 덮어쓰기+이펙트 색·그림) · 리깅 탭 · 비교 탭 · 게임 적용(`data/active.json` → `data/saves/<이름>.json`) 추가. `rig.js` = `loadRig(dir, patch)`·`patchDef`·부위 `adj`·겹침 순서 `def.order`, `fx.js` = `FXCOL`·`replaceImg`, `serve.js` = `GET /__list?dir=saves`·`DELETE /__data`. 내용은 plan §5.
+- 3~5차: 캐릭터 테스트 확대 뷰·본/관절 끌기·하단 타임라인·좌우 부위 분리(`rig.js ALIAS`)·계층(`HIER`)·편집 범위(전체 리깅/프레임별)·자식과 함께/개별·되돌리기·동작 길이. 맵 제작은 거대한 맵 한 장(청크 격자 + 지역 색)으로 다시 만듦 (plan §5·§6).
+- 커밋 안 함. 다음 = 게임이 `data/world.json` 을 읽는 그레이박스 (plan §5 다음 단계).
 
 ## 0. 꼭 지킬 규칙 (사용자 지시)
 - NKK(찍!찍!!찍!!!) IP 확장 2D 액션. 순서 = 웹에서 모션·루프 확정 → 웹빌드 → 유니티 이식.
