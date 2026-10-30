@@ -1,7 +1,7 @@
 // 기사쥐 컨셉 기획서 V1 빌드
 //   cd tools/deck_v1 && npm install && node build.js
-// 결과: docs/컨셉 기획서 V<버전>.pptx
-// 픽토그램: docs/picto/codex/<키>.png (Codex 생성본) 우선, 없으면 game-icons 배지 자동 생성
+// 결과: 기획서/컨셉 기획서 V<버전>.pptx
+// 픽토그램: 기획서/picto/codex/<키>.png (Codex 생성본) 우선, 없으면 game-icons 배지 자동 생성
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
@@ -16,7 +16,7 @@ const HISTORY = [
 ];
 
 const ROOT = path.resolve(__dirname, '../..');
-const OUT = path.join(ROOT, `docs/컨셉 기획서 ${VERSION}.pptx`);
+const OUT = path.join(ROOT, `기획서/컨셉 기획서 ${VERSION}.pptx`);
 const HEAD = 'Black Han Sans';
 const BODY = 'Noto Sans KR';
 const W = 13.333, H = 7.5;
@@ -68,8 +68,8 @@ async function prepAssets() {
   A.bgDark = b64(await sharp(halftoneSvg(1600, 900, C.night, '2B3D38', 'bl', 9, 20)).png().toBuffer());
   A.dotsPink = b64(await sharp(halftoneSvg(600, 600, null, 'FF7FB2', 'tr', 9, 20)).png().toBuffer());
   A.hero = b64(await sharp(path.join(ROOT, 'art/knight/v7/concept/hero.png')).trim().png().toBuffer());
-  A.city = b64(await sharp(path.join(ROOT, 'docs/ppt/city_depth.png')).jpeg({ quality: 88 }).toBuffer(), 'image/jpeg');
-  A.sewer = b64(await sharp(path.join(ROOT, 'docs/ppt/sewer_depth.png')).jpeg({ quality: 88 }).toBuffer(), 'image/jpeg');
+  A.city = b64(await sharp(path.join(ROOT, '기획서/ppt/city_depth.png')).jpeg({ quality: 88 }).toBuffer(), 'image/jpeg');
+  A.sewer = b64(await sharp(path.join(ROOT, '기획서/ppt/sewer_depth.png')).jpeg({ quality: 88 }).toBuffer(), 'image/jpeg');
   A.toad = b64(await keyMagenta(path.join(ROOT, 'art/boss/toad/full.png')));
   A.centi = b64(await keyMagenta(path.join(ROOT, 'art/boss/centipede/full.png')));
   return A;

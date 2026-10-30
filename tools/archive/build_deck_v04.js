@@ -54,9 +54,9 @@ const THEME = {
   section('표지');
   {
     const s = pres.addSlide({ masterName: 'DARK', sectionTitle: '표지' });
-    s.background = { path: img('docs/ppt/title_bg.jpg') };
+    s.background = { path: img('기획서/ppt/title_bg.jpg') };
     s.addShape(pres.shapes.RECTANGLE, { x: 0, y: 0, w: 10, h: 5.625, fill: { color: '1F1A33', transparency: 35 }, line: { color: '1F1A33', width: 0 }, objectName: 'shade' });
-    s.addImage({ path: img('docs/ppt/hero.png'), x: 6.7, y: 1.05, w: 412 / 719 * 3.9, h: 3.9, objectName: 'hero' });
+    s.addImage({ path: img('기획서/ppt/hero.png'), x: 6.7, y: 1.05, w: 412 / 719 * 3.9, h: 3.9, objectName: 'hero' });
     text(s, '기사쥐', { x: 0.7, y: 1.35, w: 6, h: 1.0, fontSize: 54, bold: true, color: C.background1 });
     text(s, 'RatKnight', { x: 0.72, y: 2.3, w: 6, h: 0.4, fontSize: 18, color: C.accent3, charSpacing: 4 });
     text(s, '기사를 꿈꾸는 시골 생쥐가 왕국을 향해 떠나는 메트로베니아 액션', { x: 0.7, y: 2.85, w: 6.0, h: 0.7, fontSize: 15, color: C.background1 });
@@ -86,7 +86,7 @@ const THEME = {
       '탐험과 성장이 엮인 메트로베니아 구조로 전환. 새 기술·능력이 새 길을 엶',
       '레퍼런스: 할로우 나이트(탐험·성장), 카타나 제로(한 획 베기), 이나리(웅크린 회전 → 관통 돌진)',
     ], { x: 0.5, y: 1.2, w: 4.3, h: 3.6, fontSize: 14 });
-    s.addImage({ path: img('docs/ppt/scene.png'), x: 5.1, y: 1.2, w: 4.4, h: 4.4 * 580 / 1120, objectName: 'scene' });
+    s.addImage({ path: img('기획서/ppt/scene.png'), x: 5.1, y: 1.2, w: 4.4, h: 4.4 * 580 / 1120, objectName: 'scene' });
     text(s, '웹 프로토 실제 화면 — 버려진 숲', { x: 5.1, y: 1.2 + 4.4 * 580 / 1120 + 0.08, w: 4.4, h: 0.3, fontSize: 10, color: '7A6FA0' });
   }
 
@@ -114,7 +114,7 @@ const THEME = {
   section('세계관 · 캐릭터');
   {
     const s = content('세계관 · 캐릭터', '스토리 · 세계관');
-    s.addImage({ path: img('docs/ppt/title_bg.jpg'), x: 0.5, y: 1.15, w: 4.6, h: 2.3, objectName: 'world' });
+    s.addImage({ path: img('기획서/ppt/title_bg.jpg'), x: 0.5, y: 1.15, w: 4.6, h: 2.3, objectName: 'world' });
     text(s, '지평선 너머 왕국 성 — 여정의 목표가 늘 화면 뒤에 보임', { x: 0.5, y: 3.52, w: 4.6, h: 0.3, fontSize: 10, color: '7A6FA0' });
     bullets(s, [
       '시골 마을 끝자락에 사는 작은 생쥐. 매일 밤 기사가 되는 꿈',
@@ -135,7 +135,7 @@ const THEME = {
   {
     const s = content('세계관 · 캐릭터', '캐릭터 — 견습 기사쥐');
     card(s, 0.5, 1.15, 3.0, 3.85, C.background2);
-    s.addImage({ path: img('docs/ppt/hero.png'), x: 0.5 + (3.0 - 412 / 719 * 3.5) / 2, y: 1.3, w: 412 / 719 * 3.5, h: 3.5, objectName: 'heroCard' });
+    s.addImage({ path: img('기획서/ppt/hero.png'), x: 0.5 + (3.0 - 412 / 719 * 3.5) / 2, y: 1.3, w: 412 / 719 * 3.5, h: 3.5, objectName: 'heroCard' });
     const rows = [
       ['비율', '실크송·스컬풍 꼬마 치비(약 2.2등신). 큰 머리 + 굵은 팔다리'],
       ['색', '남색 망토 + 금색 장식. 흰·노랑·주황 칼빛이 남색 몸 위에서 가장 잘 보이는 조합'],
@@ -154,7 +154,7 @@ const THEME = {
   section('비주얼 · 액션');
   {
     const s = content('비주얼 · 액션', '비주얼 가이드');
-    s.addImage({ path: img('docs/ppt/scene.png'), x: 0.5, y: 1.15, w: 5.2, h: 5.2 * 580 / 1120, objectName: 'sceneBig' });
+    s.addImage({ path: img('기획서/ppt/scene.png'), x: 0.5, y: 1.15, w: 5.2, h: 5.2 * 580 / 1120, objectName: 'sceneBig' });
     const pts = [
       ['플랫 → 코드 픽셀화', '캐릭터·배경·적 모두 플랫하게 생성하고 픽셀화는 코드에서. 그림 규칙 통일'],
       ['셰이더 명암', '실루엣 쿠션 법선 → 셀 2단 + 망점. 빛 각도 24방향 미리 구워 회전해도 빛 유지'],
@@ -194,9 +194,9 @@ const THEME = {
   {
     const s = content('비주얼 · 액션', '평타 3타 — 끊기지 않는 루프');
     const steps = [
-      ['1타', '돌진 공격 1타의 수평 회전을 위로 기울인 올려 베기. 몸을 숙이며 살짝 돌진, 칼빛은 캐릭터 앞에', 'docs/ppt/slash1.png', 590 / 310],
+      ['1타', '돌진 공격 1타의 수평 회전을 위로 기울인 올려 베기. 몸을 숙이며 살짝 돌진, 칼빛은 캐릭터 앞에', '기획서/ppt/slash1.png', 590 / 310],
       ['2타', '크게 올려치며 칼이 머리 위를 넘어 등 뒤로. 그 회전으로 뒤돌아선 자세 그대로 대기', null],
-      ['3타', '뒤로 돈 자세에서 앞으로 한 바퀴 돌며 벰. 칼이 등 뒤에 남은 채 끝 → 다시 1타가 그 칼을 앞으로 베어 넘김', 'docs/ppt/slash3.png', 640 / 360],
+      ['3타', '뒤로 돈 자세에서 앞으로 한 바퀴 돌며 벰. 칼이 등 뒤에 남은 채 끝 → 다시 1타가 그 칼을 앞으로 베어 넘김', '기획서/ppt/slash3.png', 640 / 360],
     ];
     steps.forEach(([h, b, im, ar], i) => {
       const x = 0.5 + i * 3.08, w = 2.85;
@@ -233,7 +233,7 @@ const THEME = {
   // ===== 11. 이펙트 =====
   {
     const s = content('비주얼 · 액션', '이펙트 가이드');
-    s.addImage({ path: img('docs/ppt/slash3.png'), x: 5.0, y: 1.15, w: 4.5, h: 4.5 * 360 / 640, objectName: 'fx' });
+    s.addImage({ path: img('기획서/ppt/slash3.png'), x: 5.0, y: 1.15, w: 4.5, h: 4.5 * 360 / 640, objectName: 'fx' });
     text(s, '3타 회전 베기 — 칼에 붙는 리본, 칼 쪽이 두껍고 꼬리는 바늘 끝', { x: 5.0, y: 1.15 + 4.5 * 360 / 640 + 0.08, w: 4.5, h: 0.4, fontSize: 10, color: '7A6FA0' });
     bullets(s, [
       '칼빛 = 칼끝 길을 따라 휘는 4겹 리본. 나타날 때 흰 단색 → 노랑 → 부서지며 주황',

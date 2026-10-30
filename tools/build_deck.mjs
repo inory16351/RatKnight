@@ -6,9 +6,9 @@ import {FileBlob, PresentationFile} from 'file:///C:/Users/asdzx/.cache/codex-ru
 const ROOT=path.resolve(import.meta.dirname,'..');
 const SKILL='C:/Users/asdzx/.codex/plugins/cache/openai-primary-runtime/presentations/26.1024.11018/skills/presentations';
 const PYTHON='C:/Users/asdzx/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe';
-const SOURCE=path.join(ROOT,'docs/컨셉 기획서 v0.4.pptx');
+const SOURCE=path.join(ROOT,'기획서/컨셉 기획서 v0.4.pptx');
 const BUILD=path.join(ROOT,'.codex-build/deck-after');
-const FINAL=path.join(ROOT,'docs/컨셉 기획서 v0.5.pptx');
+const FINAL=path.join(ROOT,'기획서/컨셉 기획서 v0.5.pptx');
 await fs.mkdir(BUILD,{recursive:true});
 const p=await PresentationFile.importPptx(await FileBlob.load(SOURCE));
 const info=await p.inspect({select:'$.slides[*]',include:['id','index','elements.id','elements.kind','elements.text','elements.position']});
@@ -56,12 +56,12 @@ const bytes=async rel=>new Uint8Array(await fs.readFile(path.join(ROOT,rel)));
 async function image(id,rel){const im=p.resolve(id),frame=im.frame;im.replace({blob:await bytes(rel),contentType:'image/png',fit:'contain'});im.frame=frame;im.crop={left:0,top:0,right:0,bottom:0};}
 await image('im/pgr2tcf2','art/knight/v7/concept/hero.png');
 await image('im/9k7m1w3i','art/knight/v7/concept/hero.png');
-await image('im/7ut4nih0','docs/ppt/city_depth.png');
-await image('im/tkjutw7u','docs/ppt/sewer_depth.png');
-await image('im/wnalgv6x','docs/ppt/city_depth.png');
-await image('im/4r6187e9','docs/ppt/slash1_city.png');
-await image('im/s76psvu9','docs/ppt/slash3_city.png');
-await image('im/dw3y5wz6','docs/ppt/slash3_city.png');
+await image('im/7ut4nih0','기획서/ppt/city_depth.png');
+await image('im/tkjutw7u','기획서/ppt/sewer_depth.png');
+await image('im/wnalgv6x','기획서/ppt/city_depth.png');
+await image('im/4r6187e9','기획서/ppt/slash1_city.png');
+await image('im/s76psvu9','기획서/ppt/slash3_city.png');
+await image('im/dw3y5wz6','기획서/ppt/slash3_city.png');
 await image('im/6xgry54n','art/knight/v7/spin/f10.png');
 p.slides.items[0].background.fill='#19172f';
 function text(slide,value,x,y,w,h,size=18,color='#1f1a33',bold=false){const s=slide.shapes.add({geometry:'textbox',position:{left:x,top:y,width:w,height:h},fill:'none',line:{fill:'none',width:0}});s.text=value;s.text.style={fontFamily:'Noto Sans KR',fontSize:size,color,bold};return s;}
@@ -74,7 +74,7 @@ async function extra(title,shot,body){
  text(s,String(p.slides.items.length),864,500,48,25,12,'#7a6fa0');
  return s;
 }
-await extra('풍경 전체 높이를 쓰는 원근 레이어','docs/ppt/city_depth.png',[
+await extra('풍경 전체 높이를 쓰는 원근 레이어','기획서/ppt/city_depth.png',[
  '밤하늘과 스카이라인 분리',
  '원경 건물과 중경 비상계단·배관을 화면 높이로 겹치는 구성',
  '소품 3단과 플레이 바닥, 최전경 기둥과 전선 추가',
@@ -82,7 +82,7 @@ await extra('풍경 전체 높이를 쓰는 원근 레이어','docs/ppt/city_dep
  '멀수록 안개와 흐림 증가, 앞쪽으로 올수록 대비와 선명도 증가',
  '모든 원본은 무명암 플랫, 명암과 픽셀화는 코드 후처리',
 ].join('\n\n'));
-await extra('공격 콜라이더와 피격 콜라이더','docs/ppt/combat_colliders.png',[
+await extra('공격 콜라이더와 피격 콜라이더','기획서/ppt/combat_colliders.png',[
  '공격 순간 도형 생성 후 몸 영역과 겹침 검사',
  '기본 베기 사각형, 공중 회전 원형, 내려찍기와 이동 공격 캡슐',
  '일반 적의 돌진·급강하도 동일한 판정 모듈 사용',

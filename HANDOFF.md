@@ -36,7 +36,7 @@ node tools/serve.js     # http://localhost:5330/web/index.html?rig=v4
 | `art/ui/` | UI 프롬프트(팝아트 도시판) — 생성 중이었음 (아래 4번) |
 | `tools/gen_queue.sh` | Codex 묶음 생성 (시각 대기) |
 | `tools/build_deck.js` · `tools/build_deck.mjs` | v0.4를 Artifact Tool로 가져와 수정하는 v0.5 빌더. 이전 빌더는 `tools/archive/build_deck_v04.js` 보존 |
-| `docs/컨셉 기획서 v0.4.pptx` | 원본 16장 보존. v0.5는 18장 후보 생성까지 완료, 최종 검증·저장 미완료 (§6) |
+| `기획서/컨셉 기획서 v0.4.pptx` | 원본 16장 보존. v0.5는 18장 후보 생성까지 완료, 최종 검증·저장 미완료 (§6) |
 
 ## 3. 지금 상태 (동작 확인됨)
 - 모션: 평타 3타 루프(1타 올려베기 → 2타 올려치며 뒤돌아 대기 → 3타 회전 → 다시 1타), 공중 세로 회전(통그림 공 프레임), 내려찍기+튕겨 오르기, F 짧게 = 잔상 대시(공중 가능) / 길게 = 충전 돌진(충전량 비례).
@@ -84,7 +84,7 @@ node tools/serve.js     # http://localhost:5330/web/index.html?rig=v4
 - `node tools/serve.js` → `http://localhost:5330/web/index.html`.
 - `node tools/verify_combat.cjs`: 공통 도형·양방향 공격·중복 피해·보스 위험·점프 회피 20개 브라우저 검증.
 - `node tools/inspect_action.cjs slash3 slash3_final`: 3타 프레임 스트립, 도시/하수도 전체 화면, 콜라이더 화면 생성. 시스템 Edge 헤드리스 필요.
-- 테스트 캡처는 `docs/shots/` (Git 제외). 기획서용 선택 캡처는 `docs/ppt/`에 별도 보존.
+- 테스트 캡처는 `docs/shots/` (Git 제외). 기획서용 선택 캡처는 `기획서/ppt/`에 별도 보존.
 - 실제 플레이를 통한 난이도·손맛 평가는 여전히 사용자 피드백 대상.
 
 ### 남은 별도 작업
@@ -108,7 +108,7 @@ node tools/serve.js     # http://localhost:5330/web/index.html?rig=v4
 ### 가장 먼저 이어서 할 미완료 작업: PPT 최종 저장
 - `tools/build_deck.mjs`는 기존 v0.4 디자인을 유지하며 도시 서사·장비·빌드 캡처 갱신, 원근 레이어/콜라이더 설명 2장 추가. 총 18장.
 - 후보 파일: `.codex-build/candidate.pptx`. 슬라이드 렌더: `.codex-build/deck-after/1.png`~`18.png`. 원본 렌더: `.codex-build/deck-before/`.
-- **`docs/컨셉 기획서 v0.5.pptx`는 아직 없음. 후보 파일을 검증 완료 최종본이라고 전달하지 말 것.**
+- **`기획서/컨셉 기획서 v0.5.pptx`는 아직 없음. 후보 파일을 검증 완료 최종본이라고 전달하지 말 것.**
 - 마지막 실패는 첫 번째 단계의 패키지 작성 실패가 아니라 finalizer의 Artifact Tool 재가져오기 검증에 필요한 런타임 환경변수 누락:
   `Error: RUNTIME_NODE_MODULES or CODEX_PRIMARY_RUNTIME_NODE_MODULES is required.`
 - 다음 조치: `tools/build_deck.mjs`의 finalizer 호출 전에 `process.env.RUNTIME_NODE_MODULES` 또는 실행 환경에 아래 모듈 경로 설정 후 재실행. 필요 시 스킬 runtime_helpers의 나머지 요구 환경변수도 확인.

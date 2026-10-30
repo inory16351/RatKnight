@@ -1,4 +1,4 @@
-// Codex CLI로 기획서 픽토그램 생성 → docs/picto/codex/<키>.png
+// Codex CLI로 기획서 픽토그램 생성 → 기획서/picto/codex/<키>.png
 //   node gen_picto.js            (없는 것만 생성)
 //   node gen_picto.js ab_a map3  (지정한 키만 다시 생성)
 // CODEX 환경변수로 실행 명령 지정 가능 (기본: codex). 예) CODEX="bash C:/Project/NKK_PROJECT/Tools/codex.sh"
@@ -9,7 +9,7 @@ const { execSync } = require('child_process');
 const { PICTOS, COL } = require('./picto');
 
 const ROOT = path.resolve(__dirname, '../..');
-const DIR = path.join(ROOT, 'docs/picto/codex');
+const DIR = path.join(ROOT, '기획서/picto/codex');
 const CODEX = process.env.CODEX || 'codex';
 const REF = path.join(ROOT, 'art/knight/v7/concept/hero.png');
 fs.mkdirSync(DIR, { recursive: true });

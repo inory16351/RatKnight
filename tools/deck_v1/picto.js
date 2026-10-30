@@ -1,6 +1,6 @@
 // 기획서 V1 픽토그램 목록과 배지 생성
-//  - docs/picto/codex/<키>.png 가 있으면 그 그림(Codex 생성본)을 그대로 씀
-//  - 없으면 game-icons(react-icons/gi) 아이콘으로 팝아트 배지를 만들어 docs/picto/auto/<키>.png 에 저장
+//  - 기획서/picto/codex/<키>.png 가 있으면 그 그림(Codex 생성본)을 그대로 씀
+//  - 없으면 game-icons(react-icons/gi) 아이콘으로 팝아트 배지를 만들어 기획서/picto/auto/<키>.png 에 저장
 const fs = require('fs');
 const path = require('path');
 const React = require('react');
@@ -53,8 +53,8 @@ const PICTOS = {
 };
 
 const ROOT = path.resolve(__dirname, '../..');
-const CODEX_DIR = path.join(ROOT, 'docs/picto/codex');
-const AUTO_DIR = path.join(ROOT, 'docs/picto/auto');
+const CODEX_DIR = path.join(ROOT, '기획서/picto/codex');
+const AUTO_DIR = path.join(ROOT, '기획서/picto/auto');
 
 function iconSvg(name, color) {
   const Icon = gi[name];
