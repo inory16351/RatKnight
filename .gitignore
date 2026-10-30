@@ -8,3 +8,4 @@ __pycache__/
 art/**/log*.txt
 # 오피스 임시 잠금 파일
 ~$*
+tools/deck_v1/node_modules
